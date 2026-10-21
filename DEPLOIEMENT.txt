@@ -1,0 +1,80 @@
+SIGEC — PRÉPARATION AU DÉPLOIEMENT
+=================================
+État relevé le 21 octobre 2026
+
+Ce document prépare une mise en production. Il ne déploie pas l’application et ne remplace pas une recette métier. Aucun domaine, hébergeur, serveur ou identifiant de base principale n’a encore été fourni.
+
+1. ÉTAT DE LA RECETTE NAVIGATEUR
+-------------------------------
+- La page statique /offline-visits.html s’ouvre. Elle présente en français les formulaires d’arrivée d’un visiteur, de mouvement de stock et de signalement d’incident, ainsi que le déverrouillage de la file chiffrée locale.
+- La première ouverture de /login a retourné « Maximum execution time of 30 seconds exceeded » dans Illuminate\Database\Connection. La même page s’est chargée avec SESSION_DRIVER=array pour un serveur de diagnostic. Le profil local a ensuite été réglé avec SESSION_DRIVER=file et CACHE_STORE=file dans .env et .env.example; /login s’ouvre désormais, et /register s’affiche en français dans le navigateur.
+- Ce résultat contourne l’accès des sessions locales à SQLite; il ne prouve pas la cause interne du verrou ou du délai initial. La configuration de production reste séparée et pourra utiliser des sessions en base sur le moteur principal retenu.
+- Au début de la recette, aucun serveur n’écoutait sur les ports locaux 8000 et 8001. Le serveur Laravel a été démarré pour inspection; sa réponse de connexion a atteint l’erreur ci-dessus.
+- Aucune migration n’a été exécutée pendant cette recette. L’état des migrations a été consulté en lecture seule; la migration la plus récente de post-nom y apparaît appliquée.
+- La base locale est SQLite. Un fichier journal SQLite existe; ne pas le supprimer manuellement. Aucun fichier de sauvegarde distinct n’a été repéré dans le dossier du projet.
+- Le contrôle SQLite strictement en lecture seule a donné integrity_check=ok. Il confirme que les pages de la base examinées sont cohérentes, mais n’explique pas à lui seul le dépassement de délai HTTP.
+
+Action préalable : diagnostiquer la requête qui dépasse 30 secondes (connexion/session SQLite et verrous éventuels), rétablir /login, puis refaire la recette des parcours en ligne avec des comptes et données de test. Ne pas effectuer cette recette sur des dossiers réels.
+
+2. CONFIGURATION DE PRODUCTION À PRÉPARER
+----------------------------------------
+Les valeurs relevées dans .env sont locales : APP_ENV=local, APP_DEBUG=true, APP_URL=http://localhost:8000 et DB_CONNECTION=sqlite. Le cache et les sessions locaux utilisent maintenant des fichiers. Ne pas réutiliser ce fichier .env pour la production.
+
+Créer un .env propre sur le serveur cible, hors du dépôt, avec au minimum :
+
+    APP_ENV=production
+    APP_DEBUG=false
+    APP_URL=https://<nom-de-domaine-validé>
+    APP_KEY=<clé propre à cette installation>
+    LOG_LEVEL=warning
+    SESSION_DRIVER=database
+    SESSION_ENCRYPT=true
+    SESSION_SECURE_COOKIE=true
+    DB_CONNECTION=pgsql
+    DB_HOST=<serveur-de-base>
+    DB_PORT=5432
+    DB_DATABASE=<base-principale>
+    DB_USERNAME=<compte-app-à-privilèges-limités>
+    DB_PASSWORD=<secret-stocké-hors-du-dépôt>
+
+PostgreSQL est un exemple de base principale adaptée à une installation partagée; MySQL/MariaDB est également configurable. Le choix définitif dépend de l’hébergeur et de l’infrastructure. Ne pas utiliser un fichier SQLite partagé entre plusieurs serveurs.
+
+Ne jamais copier la valeur APP_KEY du poste local, la commettre dans Git, ni la régénérer après mise en service : les gabarits biométriques chiffrés avec cette clé deviendraient illisibles. Générer et conserver la clé propre à l’installation dans le gestionnaire de secrets du serveur.
+
+3. SAUVEGARDES ET RESTAURATION
+-----------------------------
+- Avant la première migration de production et avant toute mise à jour du schéma, effectuer une sauvegarde cohérente de la base principale.
+- Chiffrer les sauvegardes, les copier sur un stockage distinct du serveur applicatif, limiter les accès et définir une durée de conservation approuvée.
+- Tester régulièrement une restauration dans un environnement isolé et vérifier les comptes, les dossiers de détention, les ordres, les affectations, l’audit et les données chiffrées.
+- Pour PostgreSQL, utiliser un export cohérent avec pg_dump; pour MySQL/MariaDB, utiliser mysqldump avec les options transactionnelles adaptées. Pour SQLite, utiliser la commande .backup de sqlite3 pendant une opération de sauvegarde planifiée plutôt qu’une copie brute pendant les écritures.
+- Sauvegarder séparément et protéger la clé APP_KEY ainsi que les pièces jointes stockées. Une sauvegarde de la base seule ne suffit pas si les fichiers associés ou la clé manquent.
+
+4. CONTRÔLES AVANT OUVERTURE AUX UTILISATEURS
+---------------------------------------------
+- Résoudre l’erreur de dépassement de délai observée à /login et faire passer la recette visuelle connectée.
+- Choisir le domaine HTTPS, l’hébergement, la base principale, la région d’hébergement et les responsables des sauvegardes.
+- Vérifier que le serveur dispose de PHP 8.3 ou plus, des extensions PHP requises par composer.lock et du pilote PDO de la base choisie; installer les dépendances Composer sans dépendances de développement.
+- Compiler les actifs frontaux avec npm.cmd run build pendant la préparation de la livraison; publier le contenu compilé avec les sources Laravel correspondantes.
+- Définir les droits d’écriture pour storage/ et bootstrap/cache/ uniquement; protéger .env, les journaux, les sauvegardes et les fichiers d’identité.
+- Confirmer la politique d’inscription des comptes. L’inscription Fortify est activée dans la configuration actuelle; décider si elle doit être désactivée ou limitée avant d’ouvrir le serveur au public.
+- Mettre en place surveillance des erreurs, rotation/rétention des journaux, procédure de restauration, mises à jour de sécurité et contrôle d’accès de l’équipe d’exploitation.
+- Composer audit ne signale aucune vulnérabilité et npm audit --omit=dev ne signale aucune vulnérabilité de production. L’audit npm complet a initialement trouvé deux alertes critiques dans tinypool; package.json/package-lock.json imposent maintenant tinypool 2.1.2, version corrigée. L’audit complet signale encore une alerte élevée associée à vite-plus 0.3.0 et à launch-editor sous Windows. La tentative de migration officielle vers vite-plus 1.3.0 n’a pas abouti : le paquet temporaire téléchargé n’a pas chargé son binding natif Windows (« not a valid Win32 application »). Ne pas considérer cette alerte de l’outillage comme résolue avant la migration et un audit complet propres.
+- Après cette mise à jour limitée, la compilation Vite et les 104 tests Laravel (460 assertions) passent.
+- La migration Vite Plus s’est arrêtée avant modification du projet : le binding natif du paquet temporaire 1.3.0 téléchargé n’était pas chargeable sur Windows (« not a valid Win32 application »). L’ancienne version reste en place; ne pas lancer npm audit fix --force sans plan de migration et validation.
+- Après installation en environnement de préproduction, sauvegarder la base, appliquer les migrations prévues avec php artisan migrate --force, puis tester connexion, rôles, cloisonnement par établissement, admissions, libérations, visites, clinique, stock, incidents, audit et synchronisation hors connexion.
+
+La suite automatisée a passé 104 tests et 460 assertions sur SQLite en mémoire; elle ne remplace pas la recette visuelle et métier sur le serveur cible.
+
+5. DÉPLOIEMENT DE TEST SUR RENDER
+--------------------------------
+Render est retenu pour une démonstration temporaire, exclusivement avec des données fictives. Les fichiers Dockerfile, .dockerignore et start-render.sh préparent une image Laravel 13 + Apache/PHP 8.4 avec compilation des actifs et PostgreSQL. Le démarrage applique les migrations puis optimise Laravel.
+
+État et limites :
+- Le dossier C:\Dev\sigec n'a pas de dépôt Git initialisé. Render ne pourra pas récupérer le code tant qu'un dépôt Git privé n'aura pas été créé et relié au projet.
+- Créer un service Web Render à partir du Dockerfile, puis une base PostgreSQL gratuite dans la même région. Le plan gratuit s'endort après 15 minutes sans trafic; la base gratuite expire après 30 jours.
+- Le système de fichiers du service gratuit est temporaire. Les photos et autres pièces jointes locales peuvent disparaître après redémarrage, mise en veille ou nouveau déploiement. Ne pas valider la conservation des photos sur cette démo.
+- Configurer dans Render : APP_ENV=production, APP_DEBUG=false, APP_KEY générée pour cette démo, APP_URL de l'URL Render, DB_CONNECTION=pgsql, DB_URL (URL interne de la base), SESSION_DRIVER=file, CACHE_STORE=file, LOG_LEVEL=warning.
+- Ne jamais déployer le .env local, la base SQLite locale, des comptes ou données réels. N'ajouter aucun secret au dépôt Git.
+- Avant de considérer le pilote prêt, résoudre l'alerte npm élevée de vite-plus 0.3.0, pousser le code dans le dépôt privé, construire l'image et vérifier les migrations ainsi que les parcours sur l'URL Render.
+
+Ce déploiement gratuit sert à valider l'accès et les parcours avec des données de démonstration; il ne convient pas à l'exploitation ni au stockage durable.
