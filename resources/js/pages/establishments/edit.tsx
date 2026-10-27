@@ -63,7 +63,7 @@ export default function EstablishmentEdit({ establishment }: Props) {
                     ))}
                     <div className="space-y-3 rounded-md border p-4"><p className="text-sm font-medium">Organisation des quartiers</p>{checks.map(({ key, label }) => <label key={key} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={data[key]} onChange={(event) => setData(key, event.target.checked)} />{label}</label>)}</div>
                     <div className="space-y-2"><label htmlFor="status" className="text-sm font-medium">Statut</label><select id="status" value={data.status} onChange={(event) => setData('status', event.target.value as FormData['status'])} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"><option value="active">Actif</option><option value="inactive">Inactif</option></select></div>
-                    <div className="flex items-center gap-3"><Button type="submit" disabled={processing}>{processing ? 'Enregistrement…' : 'Enregistrer les modifications'}</Button><Button variant="outline" asChild><Link href="/establishments">Annuler</Link></Button></div>
+                    <div className="flex items-center gap-3"><Button type="submit" disabled={processing}>{processing ? 'Mise à jour…' : 'Mettre à jour l’établissement'}</Button><Button variant="outline" asChild><Link href="/establishments">Annuler</Link></Button></div>
                 </form>
             </div>
         </>

@@ -101,7 +101,7 @@ export default function EstablishmentCreate() {
                         </select>
                     </div>
                     <div className="flex items-center gap-3">
-                        <Button type="submit" disabled={processing}>{processing ? 'Enregistrement…' : 'Enregistrer'}</Button>
+                        <Button type="submit" disabled={processing}>{processing ? 'Création…' : 'Créer l’établissement'}</Button>
                         <Button variant="outline" asChild><Link href="/establishments">Annuler</Link></Button>
                     </div>
                 </form>

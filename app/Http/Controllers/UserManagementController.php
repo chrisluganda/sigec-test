@@ -61,15 +61,25 @@ class UserManagementController extends Controller
             'role' => ['required', Rule::in(['director', 'agent', 'judicial', 'custody', 'medical'])],
         ]);
 
-        $managedUser->establishments()->syncWithoutDetaching([
-            $data['establishment_id'] => [
-                'role' => $data['role'],
-                'is_active' => true,
-                'granted_by' => $request->user()->id,
-            ],
-        ]);
+        DB::transaction(function () use ($managedUser, $request, $data) {
+            // A staff account belongs to one active establishment at a time.
+            // Keep prior links for history, but revoke their access immediately.
+            DB::table('establishment_user_access')
+                ->where('user_id', $managedUser->id)
+                ->where('establishment_id', '!=', $data['establishment_id'])
+                ->where('is_active', true)
+                ->update(['is_active' => false, 'updated_at' => now()]);
 
-        return redirect()->route('users.index')->with('success', 'Accès attribué ou mis à jour.');
+            $managedUser->establishments()->syncWithoutDetaching([
+                $data['establishment_id'] => [
+                    'role' => $data['role'],
+                    'is_active' => true,
+                    'granted_by' => $request->user()->id,
+                ],
+            ]);
+        });
+
+        return redirect()->route('users.index')->with('success', 'Nouvel établissement attribué. Les accès aux anciens établissements ont été désactivés.');
     }
 
     public function setActive(Request $request, User $managedUser): RedirectResponse

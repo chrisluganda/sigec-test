@@ -61,6 +61,8 @@ Les comptes sont activés ou désactivés par l’administration centrale, qui a
 - Garde / custody : visites, mouvements et opérations de détention prévus par les contrôles d’accès.
 - Médical : consultations cliniques dans les établissements attribués.
 
+Un utilisateur opérationnel ne conserve qu’un seul accès d’établissement actif à la fois. Lorsqu’un administrateur central lui attribue un nouvel établissement, l’accès aux précédents est désactivé; les anciennes associations restent visibles comme historique. Les autorisations serveur s’appuient sur cet accès actif pour cloisonner les données. Les brouillons chiffrés déjà enregistrés hors connexion dans un navigateur ne sont pas supprimés automatiquement par ce changement.
+
 Les contrôles d’accès sont appliqués côté serveur. Cacher un bouton dans l’interface ne remplace pas ces vérifications.
 
 FONCTIONNEMENT HORS CONNEXION
@@ -160,6 +162,7 @@ POLITIQUE DE MISE À JOUR DE CE README
 
 HISTORIQUE
 ----------
+2026-10-27 — Le changement d’établissement d’un utilisateur désactive ses anciens accès actifs. Ajout de la modification des noms de bâtiments et cellules. Après inscription, redirection vers le tableau de bord SIGEC plutôt que vers le tableau de bord générique de démonstration; libellés d’établissement précisés en français. Ces changements restent à publier sur Render.
 2026-10-21 — Recette navigateur : page hors connexion et connexion/inscription accessibles; remplacement des sessions et du cache SQLite locaux par le stockage fichier après un dépassement de délai. Traduction française des pages d’authentification. Ajout de DEPLOIEMENT.txt avec les constats et exigences; aucun déploiement ni migration de production effectué.
 2026-10-21 — Préparation sécurité : mise à jour verrouillée de tinypool en 2.1.2; audits Composer et npm production sans vulnérabilité. Alerte élevée persistante sur vite-plus 0.3.0; migration officielle non exécutée car son binding natif Windows temporaire était invalide. Compilation et 104 tests réussis.
 2026-10-21 — Vérification des parcours métier et des droits par tests automatisés. Correction du parcours de programmation d’une visite avec un visiteur déjà enregistré; ajout des tests de la matrice de rôles et des flux stock, visite, incident et pré-admission hors connexion.
@@ -168,4 +171,4 @@ HISTORIQUE
 
 DÉPLOIEMENT DE TEST
 -------------------
-Render est retenu pour un pilote temporaire avec des données fictives. La préparation Docker est présente dans Dockerfile, .dockerignore et start-render.sh. Le dossier du projet doit encore être relié à un dépôt Git privé avant que Render puisse construire l'application. Le service gratuit s'endort à l'inactivité, sa base gratuite expire après 30 jours et ses fichiers téléversés ne sont pas durables. Ce plan ne convient pas aux données réelles.
+Render est utilisé pour le service de test sigec-test, connecté au dépôt GitHub privé du projet; les changements poussés sur main déclenchent le déploiement. La préparation Docker est présente dans Dockerfile, .dockerignore et start-render.sh. Le service gratuit s'endort à l'inactivité, sa base gratuite expire après 30 jours et ses fichiers téléversés ne sont pas durables. Ce plan ne convient pas aux données réelles.

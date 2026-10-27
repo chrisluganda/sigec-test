@@ -16,7 +16,8 @@ function AccessForm({ user, establishments }: { user: ManagedUser; establishment
     return <form onSubmit={submit} className="flex flex-wrap items-end gap-2">
         <label className="text-xs">Établissement<select required value={form.data.establishment_id} onChange={e => form.setData('establishment_id', Number(e.target.value))} className="mt-1 block rounded-md border bg-background px-2 py-2 text-sm"><option value="">Choisir</option>{establishments.map(x => <option key={x.id} value={x.id}>{x.code} — {x.name}</option>)}</select></label>
         <label className="text-xs">Rôle<select value={form.data.role} onChange={e => form.setData('role', e.target.value as Role)} className="mt-1 block rounded-md border bg-background px-2 py-2 text-sm">{Object.entries(roleNames).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-        <Button type="submit" size="sm" variant="outline" disabled={form.processing}>Attribuer l’accès</Button>
+        <Button type="submit" size="sm" variant="outline" disabled={form.processing}>Changer d’établissement</Button>
+        <small className="basis-full text-muted-foreground">Le changement désactive immédiatement l’accès aux anciens établissements.</small>
         {form.errors.establishment_id ? <span className="text-xs text-destructive">{form.errors.establishment_id}</span> : null}
     </form>;
 }
