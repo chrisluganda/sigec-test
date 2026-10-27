@@ -1,15 +1,20 @@
 {
-  "id": "/",
-  "name": "SIGEC — Gestion carcérale",
-  "short_name": "SIGEC",
-  "description": "Système intégré de gestion des établissements carcéraux",
-  "lang": "fr-CD",
-  "start_url": "/dashboard",
-  "scope": "/",
-  "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1f3b32",
-  "icons": [
-    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
-  ]
+    "id": "/",
+    "name": "SIGEC — Gestion carcérale",
+    "short_name": "SIGEC",
+    "description": "Système intégré de gestion des établissements carcéraux",
+    "lang": "fr-CD",
+    "start_url": "/dashboard",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#1f3b32",
+    "icons": [
+        {
+            "src": "/favicon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any"
+        }
+    ]
 }

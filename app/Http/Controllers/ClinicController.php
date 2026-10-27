@@ -2,17 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Detainee;
 use App\Models\Establishment;
 use App\Models\MedicalConsultation;
-use App\Models\AuditLog;
-use App\Models\User;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -119,6 +118,7 @@ class ClinicController extends Controller
             $existing = MedicalConsultation::query()->where('offline_reference', $data['offline_reference'])->first();
             if ($existing) {
                 abort_unless($existing->establishment_id === $establishment->id, 409);
+
                 return [$existing, true];
             }
             $detainee = Detainee::query()->where('record_number', $data['detainee_record_number'])
@@ -148,6 +148,7 @@ class ClinicController extends Controller
                 'subject_id' => $consultation->id,
                 'summary' => 'Consultation médicale enregistrée hors connexion.',
             ]);
+
             return [$consultation, false];
         });
 

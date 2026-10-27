@@ -2,14 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Establishment;
 use App\Models\EstablishmentStock;
-use App\Models\AuditLog;
 use App\Models\InventoryItem;
 use App\Models\StockMovement;
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -162,6 +162,7 @@ class StockController extends Controller
             $existing = StockMovement::query()->where('offline_reference', $data['offline_reference'])->first();
             if ($existing) {
                 abort_unless($existing->establishment_id === $establishment->id, 409);
+
                 return [$existing, true];
             }
             $item = InventoryItem::query()->where('code', $data['item_code'])->where('is_active', true)->first();
@@ -212,6 +213,7 @@ class StockController extends Controller
                 'summary' => ($data['movement_type'] === 'entry' ? 'Entrée' : 'Sortie').' de stock enregistrée hors connexion.',
                 'metadata' => ['inventory_item_id' => $item->id, 'movement_type' => $data['movement_type'], 'quantity' => $quantity, 'location' => $data['location']],
             ]);
+
             return [$movement, false];
         });
 
@@ -223,6 +225,3 @@ class StockController extends Controller
         return $user->is_active && ($user->is_central_admin || $user->hasEstablishmentRole($establishment->id, self::ROLES));
     }
 }
-
-
-

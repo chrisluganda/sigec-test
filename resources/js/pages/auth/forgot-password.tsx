@@ -65,5 +65,6 @@ export default function ForgotPassword({ status }: { status?: string }) {
 
 ForgotPassword.layout = {
     title: 'Mot de passe oublié',
-    description: 'Saisissez votre adresse e-mail pour réinitialiser le mot de passe',
+    description:
+        'Saisissez votre adresse e-mail pour réinitialiser le mot de passe',
 };

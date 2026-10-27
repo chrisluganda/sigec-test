@@ -1,189 +1,789 @@
 <!doctype html>
 <html lang="fr">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#1f3b32">
-    <title>Saisie hors connexion — SIGEC</title>
-    <style>
-        :root { color-scheme: light; font: 16px/1.5 system-ui, sans-serif; color: #17231f; background: #f5f7f6; }
-        body { margin: 0; padding: 1rem; }
-        main { max-width: 54rem; margin: 0 auto; }
-        header, section { margin-bottom: 1rem; padding: 1.25rem; border: 1px solid #d8e0dc; border-radius: 1rem; background: white; }
-        h1, h2 { margin-top: 0; color: #1f3b32; }
-        p { color: #52615a; }
-        form { display: grid; gap: 1rem; }
-        .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
-        label { display: grid; gap: .35rem; font-size: .9rem; font-weight: 600; }
-        input, select, textarea, button { box-sizing: border-box; width: 100%; padding: .7rem .8rem; border: 1px solid #cbd5d0; border-radius: .55rem; background: white; font: inherit; }
-        button { width: auto; border: 0; color: white; background: #1f3b32; font-weight: 650; cursor: pointer; }
-        button.secondary { border: 1px solid #cbd5d0; color: #1f3b32; background: white; }
-        button:disabled { opacity: .55; cursor: not-allowed; }
-        .status { padding: .75rem; border-radius: .5rem; background: #eef3f0; }
-        .warning { background: #fff3d6; color: #694b00; }
-        .error { background: #feecec; color: #7f1d1d; }
-        .actions { display: flex; flex-wrap: wrap; align-items: center; gap: .65rem; }
-        ul { padding-left: 1.25rem; }
-        li { margin: .5rem 0; }
-        small { color: #64746c; font-weight: 400; }
-        @media (prefers-reduced-motion: no-preference) { button { transition: filter .15s ease; } button:hover { filter: brightness(1.12); } }
-    </style>
-</head>
-<body>
-<main>
-    <header>
-        <h1>Saisie hors connexion — SIGEC</h1>
-        <p>Enregistrez une arrivée de visiteur, une consultation, un incident, un mouvement de détenu ou de stock, ou une pré-admission sans réseau. Ouvrez cette page une première fois en ligne pour la conserver sur l’appareil. À la reconnexion, connectez-vous à SIGEC puis synchronisez les fiches en attente.</p>
-        <p class="status warning">Pour protéger les identités, les fiches en attente sont chiffrées sur cet appareil. Choisissez une phrase secrète et conservez-la : elle n’est pas récupérable.</p>
-        <div id="network" class="status" role="status">Vérification de la connexion…</div>
-        <div class="grid" style="margin-top:1rem">
-            <label>Phrase secrète locale <small>Au moins 8 caractères. Elle chiffre et déverrouille cette file sur cet appareil.</small><input id="passphrase" type="password" minlength="8" autocomplete="new-password" required></label>
-            <div class="actions" style="align-self:end"><button id="unlock" type="button">Déverrouiller la file</button><a href="/login">Se connecter à SIGEC</a></div>
-        </div>
-        <details style="margin-top:1rem">
-            <summary>Remplacer la phrase secrète</summary>
-            <p>La file doit être déverrouillée. Les fiches en attente seront rechiffrées avec la nouvelle phrase.</p>
-            <div class="grid">
-                <label>Nouvelle phrase secrète<input id="new-passphrase" type="password" minlength="8" autocomplete="new-password"></label>
-                <label>Confirmer la nouvelle phrase<input id="confirm-passphrase" type="password" minlength="8" autocomplete="new-password"></label>
-            </div>
-            <button id="change-passphrase" class="secondary" type="button" disabled>Changer la phrase secrète</button>
-        </details>
-        <p id="message" class="status" role="status" aria-live="polite">Déverrouillez la file pour saisir ou synchroniser des fiches.</p>
-    </header>
-    <section>
-        <h2>Nouvelle arrivée</h2>
-        <p>Le numéro de dossier doit être recopié exactement. Le serveur vérifiera à la synchronisation que la personne est toujours détenue dans l’établissement saisi.</p>
-        <form id="visit-form">
-            <div class="grid">
-                <label>Code de l’établissement<input name="establishment_code" maxlength="80" required autocomplete="off"></label>
-                <label>Numéro de dossier du détenu<input name="detainee_record_number" maxlength="100" required autocomplete="off"></label>
-                <label>Nom du visiteur<input name="family_name" maxlength="255" required autocomplete="family-name"></label>
-                <label>Post-nom (facultatif)<input name="post_name" maxlength="255"></label>
-                <label>Prénom du visiteur<input name="given_names" maxlength="255" required autocomplete="given-name"></label>
-                <label>Date de naissance (facultatif)<input name="date_of_birth" type="date"></label>
-                <label>Lieu de naissance (facultatif)<input name="place_of_birth" maxlength="255"></label>
-                <label>Type de pièce (facultatif)<input name="document_type" maxlength="100"></label>
-                <label>Référence de la pièce (facultatif)<input name="document_reference" maxlength="255"></label>
-                <label>Téléphone (facultatif)<input name="phone" maxlength="50" autocomplete="tel"></label>
-                <label>Type de visite<select name="visit_type" required><option value="family">Familiale</option><option value="legal">Juridique</option><option value="official">Officielle</option><option value="other">Autre</option></select></label>
-                <label>Lien avec le détenu (facultatif)<input name="relationship" maxlength="100" placeholder="Parent, avocat…"></label>
-            </div>
-            <div class="actions"><button type="submit">Enregistrer sur cet appareil</button><button id="sync" class="secondary" type="button">Synchroniser les fiches en attente</button><span id="pending-count">File verrouillée</span></div>
-        </form>
-    </section>
-    <section>
-        <h2>Pré-admission d’une personne détenue</h2>
-        <p class="status warning">Cette fiche chiffrée est une demande, pas une admission officielle. Après synchronisation, la direction ou un agent judiciaire vérifiera l’ordre en ligne avant de créer le dossier du détenu et son affectation.</p>
-        <form id="admission-form">
-            <div class="grid">
-                <label>Code de l’établissement<input name="establishment_code" maxlength="80" required autocomplete="off"></label>
-                <label>Nom<input name="family_name" maxlength="255" required autocomplete="family-name"></label>
-                <label>Post-nom (facultatif)<input name="post_name" maxlength="255"></label>
-                <label>Prénom<input name="given_names" maxlength="255" required autocomplete="given-name"></label>
-                <label>Date de naissance (facultatif)<input name="date_of_birth" type="date"></label>
-                <label>Sexe<select name="sex" required><option value="unknown">Non précisé</option><option value="female">Féminin</option><option value="male">Masculin</option></select></label>
-                <label>Référence du dossier judiciaire (facultatif)<input name="case_reference" maxlength="255"></label>
-                <label>Statut judiciaire<select name="case_type" required><option value="pretrial">Prévenu</option><option value="convicted">Condamné</option></select></label>
-                <label>Juridiction / tribunal<input name="court_name" maxlength="255" required></label>
-                <label>Niveau de juridiction (facultatif)<input name="court_level" maxlength="255"></label>
-                <label>Date du jugement définitif (obligatoire pour un condamné)<input name="judgment_final_at" type="date"></label>
-                <label>Référence de l’ordre de détention<input name="order_reference" maxlength="255" required></label>
-                <label>Autorité émettrice<input name="issuing_authority" maxlength="255" required></label>
-                <label>Date de délivrance<input name="issued_at" type="date"></label>
-                <label>Date de prise d’effet<input name="effective_at" type="date" required></label>
-                <label>Date d’expiration (facultatif)<input name="expires_at" type="date"></label>
-                <label>Unité / quartier (facultatif)<input name="unit_reference" maxlength="255"></label>
-                <label>Code du bâtiment<input name="building_code" maxlength="80" required></label>
-                <label>Code de la cellule<input name="cell_code" maxlength="80" required></label>
-            </div>
-            <div class="actions"><button type="submit">Enregistrer la pré-admission sur cet appareil</button></div>
-        </form>
-        <p><a href="/admission-reviews">Ouvrir le suivi des pré-admissions (direction / judiciaire)</a></p>
-    </section>
-    <section>
-        <h2>Nouvelle consultation médicale</h2>
-        <p>Les notes médicales sont chiffrées sur l’appareil. À la synchronisation, SIGEC vérifiera votre rôle médical ou de direction et la présence actuelle du détenu dans l’établissement.</p>
-        <form id="clinic-form">
-            <div class="grid">
-                <label>Code de l’établissement<input name="establishment_code" maxlength="80" required autocomplete="off"></label>
-                <label>Numéro de dossier du détenu<input name="detainee_record_number" maxlength="100" required autocomplete="off"></label>
-                <label>Date et heure de la consultation<input name="consulted_at" type="datetime-local" required></label>
-                <label>Type de consultation<select name="consultation_type" required><option value="initial">Initiale</option><option value="routine">Routine</option><option value="urgent">Urgente</option><option value="follow_up">Suivi</option><option value="other">Autre</option></select></label>
-                <label>Motif (facultatif)<textarea name="reason" maxlength="5000" rows="3"></textarea></label>
-                <label>Observations (facultatif)<textarea name="observations" maxlength="10000" rows="4"></textarea></label>
-                <label>Soins prodigués (facultatif)<textarea name="care_provided" maxlength="10000" rows="4"></textarea></label>
-                <label>Orientation nécessaire ?<select id="referral-required" name="referral_required" required><option value="0">Non</option><option value="1">Oui</option></select></label>
-                <label id="referral-notes-label">Détails de l’orientation<textarea name="referral_notes" maxlength="5000" rows="3"></textarea></label>
-            </div>
-            <div class="actions"><button type="submit">Enregistrer la consultation sur cet appareil</button></div>
-        </form>
-    </section>
-    <section>
-        <h2>Nouveau mouvement de stock</h2>
-        <p>Indiquez le code exact de l’article du catalogue commun. Une sortie ne sera synchronisée que si le stock serveur est suffisant à l’emplacement indiqué.</p>
-        <form id="stock-form">
-            <div class="grid">
-                <label>Code de l’établissement<input name="establishment_code" maxlength="80" required autocomplete="off"></label>
-                <label>Code exact de l’article<input name="item_code" maxlength="100" required autocomplete="off"></label>
-                <label>Type de mouvement<select name="movement_type" required><option value="entry">Entrée</option><option value="issue">Sortie</option></select></label>
-                <label>Quantité<input name="quantity" type="number" min="0.001" max="999999999" step="0.001" required></label>
-                <label>Emplacement<input name="location" maxlength="255" value="Magasin principal" required></label>
-                <label>Seuil de réapprovisionnement<input name="reorder_threshold" type="number" min="0" max="999999999" step="0.001" value="0"></label>
-                <label>Référence (facultatif)<input name="reference" maxlength="255"></label>
-                <label>Motif (facultatif)<input name="reason" maxlength="2000"></label>
-            </div>
-            <div class="actions"><button type="submit">Enregistrer le mouvement sur cet appareil</button></div>
-        </form>
-    </section>
-    <section>
-        <h2>Nouveau mouvement de détenu</h2>
-        <p>Indiquez les codes exacts de destination. À la synchronisation, SIGEC vérifiera les rôles requis aux établissements concernés, l’affectation actuelle et l’état du bâtiment et de la cellule.</p>
-        <form id="transfer-form">
-            <div class="grid">
-                <label>Numéro de dossier du détenu<input name="detainee_record_number" maxlength="100" required autocomplete="off"></label>
-                <label>Code de l’établissement de destination<input name="destination_establishment_code" maxlength="80" required autocomplete="off"></label>
-                <label>Code du bâtiment de destination<input name="destination_building_code" maxlength="100" required autocomplete="off"></label>
-                <label>Code de la cellule de destination<input name="destination_cell_code" maxlength="100" required autocomplete="off"></label>
-                <label>Référence du transfert<input name="transfer_reference" maxlength="255" required></label>
-                <label>Date et heure du mouvement<input name="transferred_at" type="datetime-local" required></label>
-                <label>Motif du transfert<textarea name="transfer_reason" maxlength="1000" rows="3" required></textarea></label>
-            </div>
-            <div class="actions"><button type="submit">Enregistrer le mouvement sur cet appareil</button></div>
-        </form>
-    </section>
-    <section>
-        <h2>Nouveau signalement d’incident</h2>
-        <p>Le signalement sera chiffré sur cet appareil. Le serveur contrôlera vos droits d’accès à l’établissement lors de la synchronisation.</p>
-        <form id="incident-form">
-            <div class="grid">
-                <label>Code de l’établissement<input name="establishment_code" maxlength="80" required autocomplete="off"></label>
-                <label>Type d’incident<select name="incident_type" required><option value="violence">Violence</option><option value="medical">Médical</option><option value="escape_attempt">Tentative d’évasion</option><option value="damage">Dégâts matériels</option><option value="fire">Incendie</option><option value="security">Sécurité</option><option value="other">Autre</option></select></label>
-                <label>Gravité<select name="severity" required><option value="low">Faible</option><option value="medium">Moyenne</option><option value="high">Élevée</option><option value="critical">Critique</option></select></label>
-                <label>Date et heure<input name="occurred_at" type="datetime-local" required></label>
-                <label>Lieu dans l’établissement (facultatif)<input name="location" maxlength="255"></label>
-                <label>Description<textarea name="description" maxlength="10000" rows="4" required></textarea></label>
-                <label>Mesures immédiates prises (facultatif)<textarea name="immediate_action" maxlength="5000" rows="3"></textarea></label>
-            </div>
-            <div class="actions"><button type="submit">Enregistrer le signalement sur cet appareil</button></div>
-        </form>
-    </section>
-    <section>
-        <h2>Fiches en attente</h2>
-        <div class="actions"><span id="editing-indicator" hidden>Correction en cours</span><button id="cancel-edit" class="secondary" type="button" hidden>Annuler la correction</button></div>
-        <ul id="queue"><li>Aucune fiche affichable tant que la file est verrouillée.</li></ul>
-    </section>
-    <section>
-        <h2>Sauvegarde chiffrée</h2>
-        <p>Exportez les fiches chiffrées pour les conserver ou les restaurer sur cet appareil. Une restauration demande la phrase secrète qui les a chiffrées. La sauvegarde ne permet pas de la retrouver.</p>
-        <div class="grid">
-            <label>Fichier de sauvegarde<input id="backup-file" type="file" accept="application/json,.json"></label>
-            <label>Phrase secrète de la sauvegarde <small>Demandée seulement si la file de cet appareil est vide.</small><input id="backup-passphrase" type="password" minlength="8" autocomplete="new-password"></label>
-        </div>
-        <div class="actions" style="margin-top:1rem"><button id="export-backup" type="button" disabled>Exporter une sauvegarde</button><button id="import-backup" class="secondary" type="button">Restaurer ou compléter la file</button></div>
-    </section>
-    <p><a href="/visits">Retour à SIGEC</a></p>
-</main>
-<script src="/offline-visits.js" defer></script>
-</body>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#1f3b32" />
+        <title>Saisie hors connexion — SIGEC</title>
+        <style>
+            :root {
+                color-scheme: light;
+                font:
+                    16px/1.5 system-ui,
+                    sans-serif;
+                color: #17231f;
+                background: #f5f7f6;
+            }
+            body {
+                margin: 0;
+                padding: 1rem;
+            }
+            main {
+                max-width: 54rem;
+                margin: 0 auto;
+            }
+            header,
+            section {
+                margin-bottom: 1rem;
+                padding: 1.25rem;
+                border: 1px solid #d8e0dc;
+                border-radius: 1rem;
+                background: white;
+            }
+            h1,
+            h2 {
+                margin-top: 0;
+                color: #1f3b32;
+            }
+            p {
+                color: #52615a;
+            }
+            form {
+                display: grid;
+                gap: 1rem;
+            }
+            .grid {
+                display: grid;
+                gap: 1rem;
+                grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+            }
+            label {
+                display: grid;
+                gap: 0.35rem;
+                font-size: 0.9rem;
+                font-weight: 600;
+            }
+            input,
+            select,
+            textarea,
+            button {
+                box-sizing: border-box;
+                width: 100%;
+                padding: 0.7rem 0.8rem;
+                border: 1px solid #cbd5d0;
+                border-radius: 0.55rem;
+                background: white;
+                font: inherit;
+            }
+            button {
+                width: auto;
+                border: 0;
+                color: white;
+                background: #1f3b32;
+                font-weight: 650;
+                cursor: pointer;
+            }
+            button.secondary {
+                border: 1px solid #cbd5d0;
+                color: #1f3b32;
+                background: white;
+            }
+            button:disabled {
+                opacity: 0.55;
+                cursor: not-allowed;
+            }
+            .status {
+                padding: 0.75rem;
+                border-radius: 0.5rem;
+                background: #eef3f0;
+            }
+            .warning {
+                background: #fff3d6;
+                color: #694b00;
+            }
+            .error {
+                background: #feecec;
+                color: #7f1d1d;
+            }
+            .actions {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                gap: 0.65rem;
+            }
+            ul {
+                padding-left: 1.25rem;
+            }
+            li {
+                margin: 0.5rem 0;
+            }
+            small {
+                color: #64746c;
+                font-weight: 400;
+            }
+            @media (prefers-reduced-motion: no-preference) {
+                button {
+                    transition: filter 0.15s ease;
+                }
+                button:hover {
+                    filter: brightness(1.12);
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <main>
+            <header>
+                <h1>Saisie hors connexion — SIGEC</h1>
+                <p>
+                    Enregistrez une arrivée de visiteur, une consultation, un
+                    incident, un mouvement de détenu ou de stock, ou une
+                    pré-admission sans réseau. Ouvrez cette page une première
+                    fois en ligne pour la conserver sur l’appareil. À la
+                    reconnexion, connectez-vous à SIGEC puis synchronisez les
+                    fiches en attente.
+                </p>
+                <p class="status warning">
+                    Pour protéger les identités, les fiches en attente sont
+                    chiffrées sur cet appareil. Choisissez une phrase secrète et
+                    conservez-la : elle n’est pas récupérable.
+                </p>
+                <div id="network" class="status" role="status">
+                    Vérification de la connexion…
+                </div>
+                <div class="grid" style="margin-top: 1rem">
+                    <label
+                        >Phrase secrète locale
+                        <small
+                            >Au moins 8 caractères. Elle chiffre et déverrouille
+                            cette file sur cet appareil.</small
+                        ><input
+                            id="passphrase"
+                            type="password"
+                            minlength="8"
+                            autocomplete="new-password"
+                            required
+                    /></label>
+                    <div class="actions" style="align-self: end">
+                        <button id="unlock" type="button">
+                            Déverrouiller la file</button
+                        ><a href="/login">Se connecter à SIGEC</a>
+                    </div>
+                </div>
+                <details style="margin-top: 1rem">
+                    <summary>Remplacer la phrase secrète</summary>
+                    <p>
+                        La file doit être déverrouillée. Les fiches en attente
+                        seront rechiffrées avec la nouvelle phrase.
+                    </p>
+                    <div class="grid">
+                        <label
+                            >Nouvelle phrase secrète<input
+                                id="new-passphrase"
+                                type="password"
+                                minlength="8"
+                                autocomplete="new-password"
+                        /></label>
+                        <label
+                            >Confirmer la nouvelle phrase<input
+                                id="confirm-passphrase"
+                                type="password"
+                                minlength="8"
+                                autocomplete="new-password"
+                        /></label>
+                    </div>
+                    <button
+                        id="change-passphrase"
+                        class="secondary"
+                        type="button"
+                        disabled
+                    >
+                        Changer la phrase secrète
+                    </button>
+                </details>
+                <p id="message" class="status" role="status" aria-live="polite">
+                    Déverrouillez la file pour saisir ou synchroniser des
+                    fiches.
+                </p>
+            </header>
+            <section>
+                <h2>Nouvelle arrivée</h2>
+                <p>
+                    Le numéro de dossier doit être recopié exactement. Le
+                    serveur vérifiera à la synchronisation que la personne est
+                    toujours détenue dans l’établissement saisi.
+                </p>
+                <form id="visit-form">
+                    <div class="grid">
+                        <label
+                            >Code de l’établissement<input
+                                name="establishment_code"
+                                maxlength="80"
+                                required
+                                autocomplete="off"
+                        /></label>
+                        <label
+                            >Numéro de dossier du détenu<input
+                                name="detainee_record_number"
+                                maxlength="100"
+                                required
+                                autocomplete="off"
+                        /></label>
+                        <label
+                            >Nom du visiteur<input
+                                name="family_name"
+                                maxlength="255"
+                                required
+                                autocomplete="family-name"
+                        /></label>
+                        <label
+                            >Post-nom (facultatif)<input
+                                name="post_name"
+                                maxlength="255"
+                        /></label>
+                        <label
+                            >Prénom du visiteur<input
+                                name="given_names"
+                                maxlength="255"
+                                required
+                                autocomplete="given-name"
+                        /></label>
+                        <label
+                            >Date de naissance (facultatif)<input
+                                name="date_of_birth"
+                                type="date"
+                        /></label>
+                        <label
+                            >Lieu de naissance (facultatif)<input
+                                name="place_of_birth"
+                                maxlength="255"
+                        /></label>
+                        <label
+                            >Type de pièce (facultatif)<input
+                                name="document_type"
+                                maxlength="100"
+                        /></label>
+                        <label
+                            >Référence de la pièce (facultatif)<input
+                                name="document_reference"
+                                maxlength="255"
+                        /></label>
+                        <label
+                            >Téléphone (facultatif)<input
+                                name="phone"
+                                maxlength="50"
+                                autocomplete="tel"
+                        /></label>
+                        <label
+                            >Type de visite<select name="visit_type" required>
+                                <option value="family">Familiale</option>
+                                <option value="legal">Juridique</option>
+                                <option value="official">Officielle</option>
+                                <option value="other">Autre</option>
+                            </select></label
+                        >
+                        <label
+                            >Lien avec le détenu (facultatif)<input
+                                name="relationship"
+                                maxlength="100"
+                                placeholder="Parent, avocat…"
+                        /></label>
+                    </div>
+                    <div class="actions">
+                        <button type="submit">
+                            Enregistrer sur cet appareil</button
+                        ><button id="sync" class="secondary" type="button">
+                            Synchroniser les fiches en attente</button
+                        ><span id="pending-count">File verrouillée</span>
+                    </div>
+                </form>
+            </section>
+            <section>
+                <h2>Pré-admission d’une personne détenue</h2>
+                <p class="status warning">
+                    Cette fiche chiffrée est une demande, pas une admission
+                    officielle. Après synchronisation, la direction ou un agent
+                    judiciaire vérifiera l’ordre en ligne avant de créer le
+                    dossier du détenu et son affectation.
+                </p>
+                <form id="admission-form">
+                    <div class="grid">
+                        <label
+                            >Code de l’établissement<input
+                                name="establishment_code"
+                                maxlength="80"
+                                required
+                                autocomplete="off"
+                        /></label>
+                        <label
+                            >Nom<input
+                                name="family_name"
+                                maxlength="255"
+                                required
+                                autocomplete="family-name"
+                        /></label>
+                        <label
+                            >Post-nom (facultatif)<input
+                                name="post_name"
+                                maxlength="255"
+                        /></label>
+                        <label
+                            >Prénom<input
+                                name="given_names"
+                                maxlength="255"
+                                required
+                                autocomplete="given-name"
+                        /></label>
+                        <label
+                            >Date de naissance (facultatif)<input
+                                name="date_of_birth"
+                                type="date"
+                        /></label>
+                        <label
+                            >Sexe<select name="sex" required>
+                                <option value="unknown">Non précisé</option>
+                                <option value="female">Féminin</option>
+                                <option value="male">Masculin</option>
+                            </select></label
+                        >
+                        <label
+                            >Référence du dossier judiciaire (facultatif)<input
+                                name="case_reference"
+                                maxlength="255"
+                        /></label>
+                        <label
+                            >Statut judiciaire<select name="case_type" required>
+                                <option value="pretrial">Prévenu</option>
+                                <option value="convicted">Condamné</option>
+                            </select></label
+                        >
+                        <label
+                            >Juridiction / tribunal<input
+                                name="court_name"
+                                maxlength="255"
+                                required
+                        /></label>
+                        <label
+                            >Niveau de juridiction (facultatif)<input
+                                name="court_level"
+                                maxlength="255"
+                        /></label>
+                        <label
+                            >Date du jugement définitif (obligatoire pour un
+                            condamné)<input
+                                name="judgment_final_at"
+                                type="date"
+                        /></label>
+                        <label
+                            >Référence de l’ordre de détention<input
+                                name="order_reference"
+                                maxlength="255"
+                                required
+                        /></label>
+                        <label
+                            >Autorité émettrice<input
+                                name="issuing_authority"
+                                maxlength="255"
+                                required
+                        /></label>
+                        <label
+                            >Date de délivrance<input
+                                name="issued_at"
+                                type="date"
+                        /></label>
+                        <label
+                            >Date de prise d’effet<input
+                                name="effective_at"
+                                type="date"
+                                required
+                        /></label>
+                        <label
+                            >Date d’expiration (facultatif)<input
+                                name="expires_at"
+                                type="date"
+                        /></label>
+                        <label
+                            >Unité / quartier (facultatif)<input
+                                name="unit_reference"
+                                maxlength="255"
+                        /></label>
+                        <label
+                            >Code du bâtiment<input
+                                name="building_code"
+                                maxlength="80"
+                                required
+                        /></label>
+                        <label
+                            >Code de la cellule<input
+                                name="cell_code"
+                                maxlength="80"
+                                required
+                        /></label>
+                    </div>
+                    <div class="actions">
+                        <button type="submit">
+                            Enregistrer la pré-admission sur cet appareil
+                        </button>
+                    </div>
+                </form>
+                <p>
+                    <a href="/admission-reviews"
+                        >Ouvrir le suivi des pré-admissions (direction /
+                        judiciaire)</a
+                    >
+                </p>
+            </section>
+            <section>
+                <h2>Nouvelle consultation médicale</h2>
+                <p>
+                    Les notes médicales sont chiffrées sur l’appareil. À la
+                    synchronisation, SIGEC vérifiera votre rôle médical ou de
+                    direction et la présence actuelle du détenu dans
+                    l’établissement.
+                </p>
+                <form id="clinic-form">
+                    <div class="grid">
+                        <label
+                            >Code de l’établissement<input
+                                name="establishment_code"
+                                maxlength="80"
+                                required
+                                autocomplete="off"
+                        /></label>
+                        <label
+                            >Numéro de dossier du détenu<input
+                                name="detainee_record_number"
+                                maxlength="100"
+                                required
+                                autocomplete="off"
+                        /></label>
+                        <label
+                            >Date et heure de la consultation<input
+                                name="consulted_at"
+                                type="datetime-local"
+                                required
+                        /></label>
+                        <label
+                            >Type de consultation<select
+                                name="consultation_type"
+                                required
+                            >
+                                <option value="initial">Initiale</option>
+                                <option value="routine">Routine</option>
+                                <option value="urgent">Urgente</option>
+                                <option value="follow_up">Suivi</option>
+                                <option value="other">Autre</option>
+                            </select></label
+                        >
+                        <label
+                            >Motif (facultatif)<textarea
+                                name="reason"
+                                maxlength="5000"
+                                rows="3"
+                            ></textarea>
+                        </label>
+                        <label
+                            >Observations (facultatif)<textarea
+                                name="observations"
+                                maxlength="10000"
+                                rows="4"
+                            ></textarea>
+                        </label>
+                        <label
+                            >Soins prodigués (facultatif)<textarea
+                                name="care_provided"
+                                maxlength="10000"
+                                rows="4"
+                            ></textarea>
+                        </label>
+                        <label
+                            >Orientation nécessaire ?<select
+                                id="referral-required"
+                                name="referral_required"
+                                required
+                            >
+                                <option value="0">Non</option>
+                                <option value="1">Oui</option>
+                            </select></label
+                        >
+                        <label id="referral-notes-label"
+                            >Détails de l’orientation<textarea
+                                name="referral_notes"
+                                maxlength="5000"
+                                rows="3"
+                            ></textarea>
+                        </label>
+                    </div>
+                    <div class="actions">
+                        <button type="submit">
+                            Enregistrer la consultation sur cet appareil
+                        </button>
+                    </div>
+                </form>
+            </section>
+            <section>
+                <h2>Nouveau mouvement de stock</h2>
+                <p>
+                    Indiquez le code exact de l’article du catalogue commun. Une
+                    sortie ne sera synchronisée que si le stock serveur est
+                    suffisant à l’emplacement indiqué.
+                </p>
+                <form id="stock-form">
+                    <div class="grid">
+                        <label
+                            >Code de l’établissement<input
+                                name="establishment_code"
+                                maxlength="80"
+                                required
+                                autocomplete="off"
+                        /></label>
+                        <label
+                            >Code exact de l’article<input
+                                name="item_code"
+                                maxlength="100"
+                                required
+                                autocomplete="off"
+                        /></label>
+                        <label
+                            >Type de mouvement<select
+                                name="movement_type"
+                                required
+                            >
+                                <option value="entry">Entrée</option>
+                                <option value="issue">Sortie</option>
+                            </select></label
+                        >
+                        <label
+                            >Quantité<input
+                                name="quantity"
+                                type="number"
+                                min="0.001"
+                                max="999999999"
+                                step="0.001"
+                                required
+                        /></label>
+                        <label
+                            >Emplacement<input
+                                name="location"
+                                maxlength="255"
+                                value="Magasin principal"
+                                required
+                        /></label>
+                        <label
+                            >Seuil de réapprovisionnement<input
+                                name="reorder_threshold"
+                                type="number"
+                                min="0"
+                                max="999999999"
+                                step="0.001"
+                                value="0"
+                        /></label>
+                        <label
+                            >Référence (facultatif)<input
+                                name="reference"
+                                maxlength="255"
+                        /></label>
+                        <label
+                            >Motif (facultatif)<input
+                                name="reason"
+                                maxlength="2000"
+                        /></label>
+                    </div>
+                    <div class="actions">
+                        <button type="submit">
+                            Enregistrer le mouvement sur cet appareil
+                        </button>
+                    </div>
+                </form>
+            </section>
+            <section>
+                <h2>Nouveau mouvement de détenu</h2>
+                <p>
+                    Indiquez les codes exacts de destination. À la
+                    synchronisation, SIGEC vérifiera les rôles requis aux
+                    établissements concernés, l’affectation actuelle et l’état
+                    du bâtiment et de la cellule.
+                </p>
+                <form id="transfer-form">
+                    <div class="grid">
+                        <label
+                            >Numéro de dossier du détenu<input
+                                name="detainee_record_number"
+                                maxlength="100"
+                                required
+                                autocomplete="off"
+                        /></label>
+                        <label
+                            >Code de l’établissement de destination<input
+                                name="destination_establishment_code"
+                                maxlength="80"
+                                required
+                                autocomplete="off"
+                        /></label>
+                        <label
+                            >Code du bâtiment de destination<input
+                                name="destination_building_code"
+                                maxlength="100"
+                                required
+                                autocomplete="off"
+                        /></label>
+                        <label
+                            >Code de la cellule de destination<input
+                                name="destination_cell_code"
+                                maxlength="100"
+                                required
+                                autocomplete="off"
+                        /></label>
+                        <label
+                            >Référence du transfert<input
+                                name="transfer_reference"
+                                maxlength="255"
+                                required
+                        /></label>
+                        <label
+                            >Date et heure du mouvement<input
+                                name="transferred_at"
+                                type="datetime-local"
+                                required
+                        /></label>
+                        <label
+                            >Motif du transfert<textarea
+                                name="transfer_reason"
+                                maxlength="1000"
+                                rows="3"
+                                required
+                            ></textarea>
+                        </label>
+                    </div>
+                    <div class="actions">
+                        <button type="submit">
+                            Enregistrer le mouvement sur cet appareil
+                        </button>
+                    </div>
+                </form>
+            </section>
+            <section>
+                <h2>Nouveau signalement d’incident</h2>
+                <p>
+                    Le signalement sera chiffré sur cet appareil. Le serveur
+                    contrôlera vos droits d’accès à l’établissement lors de la
+                    synchronisation.
+                </p>
+                <form id="incident-form">
+                    <div class="grid">
+                        <label
+                            >Code de l’établissement<input
+                                name="establishment_code"
+                                maxlength="80"
+                                required
+                                autocomplete="off"
+                        /></label>
+                        <label
+                            >Type d’incident<select
+                                name="incident_type"
+                                required
+                            >
+                                <option value="violence">Violence</option>
+                                <option value="medical">Médical</option>
+                                <option value="escape_attempt">
+                                    Tentative d’évasion
+                                </option>
+                                <option value="damage">Dégâts matériels</option>
+                                <option value="fire">Incendie</option>
+                                <option value="security">Sécurité</option>
+                                <option value="other">Autre</option>
+                            </select></label
+                        >
+                        <label
+                            >Gravité<select name="severity" required>
+                                <option value="low">Faible</option>
+                                <option value="medium">Moyenne</option>
+                                <option value="high">Élevée</option>
+                                <option value="critical">Critique</option>
+                            </select></label
+                        >
+                        <label
+                            >Date et heure<input
+                                name="occurred_at"
+                                type="datetime-local"
+                                required
+                        /></label>
+                        <label
+                            >Lieu dans l’établissement (facultatif)<input
+                                name="location"
+                                maxlength="255"
+                        /></label>
+                        <label
+                            >Description<textarea
+                                name="description"
+                                maxlength="10000"
+                                rows="4"
+                                required
+                            ></textarea>
+                        </label>
+                        <label
+                            >Mesures immédiates prises (facultatif)<textarea
+                                name="immediate_action"
+                                maxlength="5000"
+                                rows="3"
+                            ></textarea>
+                        </label>
+                    </div>
+                    <div class="actions">
+                        <button type="submit">
+                            Enregistrer le signalement sur cet appareil
+                        </button>
+                    </div>
+                </form>
+            </section>
+            <section>
+                <h2>Fiches en attente</h2>
+                <div class="actions">
+                    <span id="editing-indicator" hidden
+                        >Correction en cours</span
+                    ><button
+                        id="cancel-edit"
+                        class="secondary"
+                        type="button"
+                        hidden
+                    >
+                        Annuler la correction
+                    </button>
+                </div>
+                <ul id="queue">
+                    <li>
+                        Aucune fiche affichable tant que la file est
+                        verrouillée.
+                    </li>
+                </ul>
+            </section>
+            <section>
+                <h2>Sauvegarde chiffrée</h2>
+                <p>
+                    Exportez les fiches chiffrées pour les conserver ou les
+                    restaurer sur cet appareil. Une restauration demande la
+                    phrase secrète qui les a chiffrées. La sauvegarde ne permet
+                    pas de la retrouver.
+                </p>
+                <div class="grid">
+                    <label
+                        >Fichier de sauvegarde<input
+                            id="backup-file"
+                            type="file"
+                            accept="application/json,.json"
+                    /></label>
+                    <label
+                        >Phrase secrète de la sauvegarde
+                        <small
+                            >Demandée seulement si la file de cet appareil est
+                            vide.</small
+                        ><input
+                            id="backup-passphrase"
+                            type="password"
+                            minlength="8"
+                            autocomplete="new-password"
+                    /></label>
+                </div>
+                <div class="actions" style="margin-top: 1rem">
+                    <button id="export-backup" type="button" disabled>
+                        Exporter une sauvegarde</button
+                    ><button id="import-backup" class="secondary" type="button">
+                        Restaurer ou compléter la file
+                    </button>
+                </div>
+            </section>
+            <p><a href="/visits">Retour à SIGEC</a></p>
+        </main>
+        <script src="/offline-visits.js" defer></script>
+    </body>
 </html>

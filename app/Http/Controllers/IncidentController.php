@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Establishment;
 use App\Models\AuditLog;
+use App\Models\Establishment;
 use App\Models\Incident;
 use App\Models\IncidentAction;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -84,6 +84,7 @@ class IncidentController extends Controller
             $existing = Incident::query()->where('offline_reference', $data['offline_reference'])->first();
             if ($existing) {
                 abort_unless($existing->establishment_id === $establishment->id, 409);
+
                 return [$existing, true];
             }
             $incident = Incident::query()->create([
@@ -99,6 +100,7 @@ class IncidentController extends Controller
                 'status' => 'open',
             ]);
             AuditLog::query()->create(['actor_id' => $user->id, 'establishment_id' => $incident->establishment_id, 'event' => 'incident.reported', 'subject_type' => 'incident', 'subject_id' => $incident->id, 'summary' => 'Incident signalé']);
+
             return [$incident, false];
         });
 

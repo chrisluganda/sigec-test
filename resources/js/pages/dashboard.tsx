@@ -2,7 +2,7 @@ import { Head } from '@inertiajs/react';
 import { useState } from 'react';
 import PendingInvitationsModal from '@/components/pending-invitations-modal';
 import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
-import { dashboard } from '@/routes';
+import { dashboard as teamDashboard } from '@/routes/team';
 import type { DashboardInvitation } from '@/types';
 
 type Props = {
@@ -46,7 +46,9 @@ Dashboard.layout = (props: { currentTeam?: { slug: string } | null }) => ({
     breadcrumbs: [
         {
             title: 'Dashboard',
-            href: props.currentTeam ? dashboard(props.currentTeam.slug) : '/',
+            href: props.currentTeam
+                ? teamDashboard(props.currentTeam.slug).url
+                : '/',
         },
     ],
 });

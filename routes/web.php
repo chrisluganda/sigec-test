@@ -1,18 +1,18 @@
 <?php
 
+use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\ClinicController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\DetaineeController;
 use App\Http\Controllers\DetaineeAdmissionDraftController;
+use App\Http\Controllers\DetaineeController;
 use App\Http\Controllers\EstablishmentController;
 use App\Http\Controllers\EstablishmentStructureController;
-use App\Http\Controllers\UserManagementController;
-use App\Http\Controllers\StockController;
-use App\Http\Controllers\ClinicController;
-use App\Http\Controllers\VisitsController;
 use App\Http\Controllers\IncidentController;
 use App\Http\Controllers\MagistrateController;
-use App\Http\Controllers\AuditLogController;
+use App\Http\Controllers\StockController;
 use App\Http\Controllers\Teams\TeamInvitationController;
+use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\VisitsController;
 use App\Http\Middleware\EnsureTeamMembership;
 use Illuminate\Support\Facades\Route;
 
@@ -98,11 +98,3 @@ Route::middleware(['auth'])->group(function () {
 });
 
 require __DIR__.'/settings.php';
-
-
-
-
-
-
-
-

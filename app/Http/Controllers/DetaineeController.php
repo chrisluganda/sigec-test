@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Cell;
 use App\Models\CellAssignment;
-use App\Models\AuditLog;
 use App\Models\Detainee;
 use App\Models\DetaineeBiometric;
 use App\Models\DetentionStay;
@@ -12,9 +12,11 @@ use App\Models\Establishment;
 use App\Models\EstablishmentBuilding;
 use App\Models\Magistrate;
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -27,6 +29,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 class DetaineeController extends Controller
 {
     private const ACCESS_ROLES = ['director', 'agent', 'judicial', 'custody'];
+
     private const IDENTITY_EDIT_ROLES = ['director', 'judicial'];
 
     public function index(Request $request): Response
@@ -57,6 +60,7 @@ class DetaineeController extends Controller
             'cases' => fn ($query) => $query->latest(),
         ])
             ->paginate(25, ['id', 'record_number', 'family_name', 'post_name', 'given_names', 'date_of_birth', 'sex'])->withQueryString();
+
         return Inertia::render('detainees/index', [
             'detainees' => $detainees,
             'search' => (string) $request->query('search', ''),
@@ -173,7 +177,7 @@ class DetaineeController extends Controller
         $data = $request->validate(['q' => ['required', 'string', 'min:2', 'max:100']]);
         $term = trim($data['q']);
         $cells = Cell::query()->where('status', 'active')
-            
+
             ->whereHas('building', fn ($query) => $query->where('establishment_id', $establishment->id)->where('status', 'active'))
             ->where(fn ($query) => $query->where('code', 'like', "%{$term}%")->orWhere('name', 'like', "%{$term}%")->orWhereHas('building', fn ($building) => $building->where('code', 'like', "%{$term}%")->orWhere('name', 'like', "%{$term}%")))
             ->with('building:id,code,name')->withCount(['activeAssignments as occupied'])->orderBy('code')->limit(20)->get(['id', 'code', 'name', 'capacity']);
@@ -196,15 +200,15 @@ class DetaineeController extends Controller
         DB::transaction(function () use ($data, $detainee, $user) {
             $stay = $detainee->stays()->whereNull('released_at')->lockForUpdate()->firstOrFail();
             $sourceEstablishmentId = $stay->establishment_id;
-            $destination = Establishment::query()->findOrFail($data['establishment_id']);
+            $destination = Establishment::query()->findOrFail((int) $data['establishment_id']);
             abort_unless($user->is_central_admin || ($user->hasEstablishmentRole($stay->establishment_id, ['director', 'custody']) && $user->hasEstablishmentRole($destination->id, ['director', 'custody'])), 403);
-            abort_if(\Illuminate\Support\Carbon::parse($data['transferred_at'])->lt($stay->admitted_at), 422, 'La date du transfert ne peut pas précéder l’admission.');
+            abort_if(Carbon::parse($data['transferred_at'])->lt($stay->admitted_at), 422, 'La date du transfert ne peut pas précéder l’admission.');
 
             $cell = Cell::query()->whereKey($data['cell_id'])->lockForUpdate()->with('building')->firstOrFail();
             abort_unless($cell->building->establishment_id === $destination->id && $cell->building->status === 'active' && $cell->status === 'active', 422, 'La cellule doit être active et dépendre de l’établissement de destination.');
             $oldAssignment = CellAssignment::query()->where('detainee_id', $detainee->id)->whereNull('ended_at')->lockForUpdate()->first();
             abort_if($oldAssignment && $oldAssignment->cell_id === $cell->id, 422, 'La personne est déjà affectée à cette cellule.');
-            $at = \Illuminate\Support\Carbon::parse($data['transferred_at']);
+            $at = Carbon::parse($data['transferred_at']);
             if ($oldAssignment) {
                 abort_if($at->lt($oldAssignment->assigned_at), 422, 'La date du mouvement ne peut pas précéder l’affectation actuelle.');
                 $oldCell = Cell::query()->whereKey($oldAssignment->cell_id)->lockForUpdate()->firstOrFail();
@@ -269,6 +273,7 @@ class DetaineeController extends Controller
                 ->with(['cell.building', 'detentionStay'])->first();
             if ($existing) {
                 $this->authorizeOfflineTransferDuplicate($user, $existing, $destination->id);
+
                 return [$existing->id, true];
             }
 
@@ -282,7 +287,7 @@ class DetaineeController extends Controller
             }
             abort_unless($user->is_central_admin || ($user->hasEstablishmentRole($stay->establishment_id, ['director', 'custody']) && $user->hasEstablishmentRole($destination->id, ['director', 'custody'])), 403);
 
-            $at = \Illuminate\Support\Carbon::parse($data['transferred_at']);
+            $at = Carbon::parse($data['transferred_at']);
             if ($at->lt($stay->admitted_at)) {
                 throw ValidationException::withMessages(['transferred_at' => 'La date du mouvement ne peut pas précéder l’admission actuelle.']);
             }
@@ -407,7 +412,7 @@ class DetaineeController extends Controller
         abort_unless($user->is_active && ($user->is_central_admin || $user->hasEstablishmentRole($establishment->id, self::ACCESS_ROLES)), 403);
         abort_unless($building->establishment_id === $establishment->id && $building->status === 'active', 404);
         $matches = Cell::query()->where('cells.establishment_building_id', $building->id)->where('cells.status', 'active')
-            
+
             ->withCount(['activeAssignments as occupied'])
             ->orderBy('cells.code')->get(['id', 'code', 'name', 'capacity']);
 
@@ -446,7 +451,7 @@ class DetaineeController extends Controller
             'title_verified' => ['accepted'],
         ]);
 
-        $establishment = Establishment::query()->findOrFail($validated['establishment_id']);
+        $establishment = Establishment::query()->findOrFail((int) $validated['establishment_id']);
         abort_unless(
             $user->is_central_admin || $user->hasEstablishmentRole($establishment->id, self::ACCESS_ROLES),
             403,
@@ -500,12 +505,13 @@ class DetaineeController extends Controller
 
             $cell = Cell::query()->whereKey($validated['cell_id'])->lockForUpdate()->with('building')->firstOrFail();
             if ($cell->building->establishment_id !== $establishment->id || $cell->building->status !== 'active' || $cell->status !== 'active') {
-                throw \Illuminate\Validation\ValidationException::withMessages(['cell_id' => 'La cellule choisie ne dépend pas de cet établissement ou n’est pas active.']);
+                throw ValidationException::withMessages(['cell_id' => 'La cellule choisie ne dépend pas de cet établissement ou n’est pas active.']);
             }
             CellAssignment::query()->create([
                 'cell_id' => $cell->id, 'detainee_id' => $detainee->id, 'detention_stay_id' => $stay->id,
                 'assigned_by' => $user->id, 'assigned_at' => now(),
-            ]);            $occupiedInCell = CellAssignment::query()->where('cell_id', $cell->id)->whereNull('ended_at')->count();
+            ]);
+            $occupiedInCell = CellAssignment::query()->where('cell_id', $cell->id)->whereNull('ended_at')->count();
             if ($occupiedInCell > $cell->capacity) {
                 AuditLog::query()->create([
                     'actor_id' => $user->id, 'establishment_id' => $establishment->id, 'event' => 'cell.overcrowding',
@@ -548,7 +554,7 @@ class DetaineeController extends Controller
         DB::transaction(function () use ($detainee, $user, $validated) {
             $stay = $detainee->stays()->whereNull('released_at')->with('detentionOrder')->lockForUpdate()->firstOrFail();
             abort_unless($user->is_central_admin || $user->hasEstablishmentRole($stay->establishment_id, ['director', 'judicial', 'custody']), 403);
-            if (\Illuminate\Support\Carbon::parse($validated['released_at'])->lt($stay->admitted_at)) {
+            if (Carbon::parse($validated['released_at'])->lt($stay->admitted_at)) {
                 abort(422, 'La date de libération ne peut pas précéder l’admission.');
             }
             $activeAssignments = $stay->cellAssignments()->whereNull('ended_at')->get(['id', 'cell_id']);
@@ -575,6 +581,7 @@ class DetaineeController extends Controller
 
         return redirect()->route('detainees.index');
     }
+
     private function logResolvedOvercrowding(User $user, int $establishmentId, Cell $cell, int $occupiedBefore, int $occupiedAfter): void
     {
         if ($occupiedBefore <= $cell->capacity || $occupiedAfter > $cell->capacity) {
@@ -591,6 +598,8 @@ class DetaineeController extends Controller
             'metadata' => ['cell_code' => $cell->code, 'capacity' => $cell->capacity, 'occupied' => $occupiedAfter],
         ]);
     }
+
+    /** @return Collection<int, int|string> */
     private function accessibleEstablishmentIds(User $user)
     {
         if ($user->is_central_admin) {
@@ -604,8 +613,3 @@ class DetaineeController extends Controller
             ->pluck('establishments.id');
     }
 }
-
-
-
-
-

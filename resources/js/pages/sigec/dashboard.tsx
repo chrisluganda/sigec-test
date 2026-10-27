@@ -1,13 +1,59 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowUpRight, Download, Building2, Boxes, Grid2x2, CircleUserRound, UsersRound, Stethoscope, ClipboardList, Siren, Gavel, ScrollText } from 'lucide-react';
+import {
+    ArrowUpRight,
+    Download,
+    Building2,
+    Boxes,
+    Grid2x2,
+    CircleUserRound,
+    UsersRound,
+    Stethoscope,
+    ClipboardList,
+    Siren,
+    Gavel,
+    ScrollText,
+} from 'lucide-react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 
 type Props = {
-    stats: { establishments: number; activeDetainees: number; buildings: number; cells: number; occupiedPlaces: number; capacity: number; openIncidents: number; monthConsultations: number; todayVisits: number };
+    stats: {
+        establishments: number;
+        activeDetainees: number;
+        buildings: number;
+        cells: number;
+        occupiedPlaces: number;
+        capacity: number;
+        openIncidents: number;
+        monthConsultations: number;
+        todayVisits: number;
+    };
     selectedEstablishmentId: number | null;
-    overcrowdedCells: { id: number; cellCode: string; cellName: string | null; capacity: number; occupied: number; excess: number; buildingCode: string; buildingName: string; establishmentId: number; establishmentCode: string; establishmentName: string }[];
-    establishmentOccupancy: { id: number; code: string; name: string; province: string | null; city: string | null; capacity: number; activeDetainees: number; occupiedPlaces: number; occupancyRate: number; excess: number }[];
+    overcrowdedCells: {
+        id: number;
+        cellCode: string;
+        cellName: string | null;
+        capacity: number;
+        occupied: number;
+        excess: number;
+        buildingCode: string;
+        buildingName: string;
+        establishmentId: number;
+        establishmentCode: string;
+        establishmentName: string;
+    }[];
+    establishmentOccupancy: {
+        id: number;
+        code: string;
+        name: string;
+        province: string | null;
+        city: string | null;
+        capacity: number;
+        activeDetainees: number;
+        occupiedPlaces: number;
+        occupancyRate: number;
+        excess: number;
+    }[];
     canManageUsers: boolean;
     canManageStocks: boolean;
     canManageClinic: boolean;
@@ -15,39 +61,548 @@ type Props = {
     canManageIncidents: boolean;
 };
 
-export default function SigecDashboard({ stats, overcrowdedCells, selectedEstablishmentId, establishmentOccupancy, canManageUsers, canManageStocks, canManageClinic, canManageVisits, canManageIncidents }: Props) {
+export default function SigecDashboard({
+    stats,
+    overcrowdedCells,
+    selectedEstablishmentId,
+    establishmentOccupancy,
+    canManageUsers,
+    canManageStocks,
+    canManageClinic,
+    canManageVisits,
+    canManageIncidents,
+}: Props) {
     const cards = [
-        { label: 'Établissements accessibles', value: stats.establishments, note: 'Établissements actifs', icon: Building2 },
-        { label: 'Détenus présents', value: stats.activeDetainees, note: 'Admissions non clôturées', icon: UsersRound },
-        { label: 'Bâtiments', value: stats.buildings, note: 'Dans vos établissements', icon: Building2 },
-        { label: 'Cellules', value: stats.cells, note: `${stats.occupiedPlaces} place(s) actuellement affectée(s)`, icon: Grid2x2 },
+        {
+            label: 'Établissements accessibles',
+            value: stats.establishments,
+            note: 'Établissements actifs',
+            icon: Building2,
+        },
+        {
+            label: 'Détenus présents',
+            value: stats.activeDetainees,
+            note: 'Admissions non clôturées',
+            icon: UsersRound,
+        },
+        {
+            label: 'Bâtiments',
+            value: stats.buildings,
+            note: 'Dans vos établissements',
+            icon: Building2,
+        },
+        {
+            label: 'Cellules',
+            value: stats.cells,
+            note: `${stats.occupiedPlaces} place(s) actuellement affectée(s)`,
+            icon: Grid2x2,
+        },
     ];
-    const occupancyRate = stats.capacity > 0 ? Math.round((stats.occupiedPlaces / stats.capacity) * 100) : 0;
+    const occupancyRate =
+        stats.capacity > 0
+            ? Math.round((stats.occupiedPlaces / stats.capacity) * 100)
+            : 0;
     const occupancy = Math.min(100, occupancyRate);
-    return <>
-        <Head title="Tableau de bord SIGEC" />
-        <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 md:gap-8 md:p-8">
-            <div className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border bg-gradient-to-r from-primary/5 via-card to-card p-5 shadow-sm md:p-7"><Heading variant="small" title="Tableau de bord" description="Vue d’ensemble de la gestion carcérale dans vos établissements." /><span className="rounded-full border bg-background px-3 py-1.5 text-xs text-muted-foreground">SIGEC · Gestion carcérale</span></div>
-            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(card => <article key={card.label} className="group rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"><div className="flex items-start justify-between gap-3"><span className="text-sm font-medium text-muted-foreground">{card.label}</span><span className="rounded-xl bg-primary/10 p-2.5 text-primary"><card.icon className="size-5" /></span></div><div className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">{card.value}</div><p className="mt-1 text-xs text-muted-foreground">{card.note}</p></article>)}</section>
-            {(canManageIncidents || canManageClinic || canManageVisits) ? <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                {canManageIncidents ? <Link href="/incidents" className="rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Incidents à traiter</span><Siren className="size-5 text-primary" /></div><div className="mt-5 text-3xl font-semibold tracking-tight">{stats.openIncidents}</div><p className="mt-1 text-xs text-muted-foreground">Signalements non clôturés</p></Link> : null}
-                {canManageClinic ? <Link href="/clinic" className="rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Consultations ce mois</span><Stethoscope className="size-5 text-primary" /></div><div className="mt-5 text-3xl font-semibold tracking-tight">{stats.monthConsultations}</div><p className="mt-1 text-xs text-muted-foreground">Depuis le début du mois</p></Link> : null}
-                {canManageVisits ? <Link href="/visits" className="rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"><div className="flex items-center justify-between"><span className="text-sm text-muted-foreground">Visites prévues aujourd’hui</span><ClipboardList className="size-5 text-primary" /></div><div className="mt-5 text-3xl font-semibold tracking-tight">{stats.todayVisits}</div><p className="mt-1 text-xs text-muted-foreground">Programmées ou en cours</p></Link> : null}
-            </section> : null}
-            <section className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
-                <div className="rounded-2xl border bg-card p-5 shadow-sm md:p-6"><Heading variant="small" title="Occupation des cellules" description="Affectations actives par rapport à la capacité totale enregistrée." /><div className="mt-6 flex items-baseline justify-between"><span className="text-2xl font-semibold">{stats.occupiedPlaces} <span className="text-sm font-normal text-muted-foreground">place(s) affectée(s)</span></span><span className="text-sm text-muted-foreground">Capacité : {stats.capacity}</span></div><div className="mt-3 h-3 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${occupancy}%` }} /></div><p className="mt-2 text-xs text-muted-foreground">{stats.capacity > 0 ? `${occupancyRate} % de la capacité enregistrée` : 'Aucune capacité de cellule n’est encore enregistrée.'}</p>{stats.occupiedPlaces > stats.capacity && <p className="mt-2 text-sm font-medium text-amber-700 dark:text-amber-400">Surpopulation : {stats.occupiedPlaces - stats.capacity} personne(s) au-delà de la capacité.</p>}</div>
-                <div className="rounded-2xl border bg-card p-5 shadow-sm md:p-6"><Heading variant="small" title="Accès rapides" description="Ouvrir un module de gestion." /><div className="mt-4 grid gap-2"><Button asChild className="justify-between"><Link href="/establishments"><span className="flex items-center gap-2"><Building2 size={17} /> Établissements</span><ArrowUpRight size={16} /></Link></Button><Button variant="outline" asChild className="justify-between"><Link href="/detainees"><span className="flex items-center gap-2"><UsersRound size={17} /> Dossiers des détenus</span><ArrowUpRight size={16} /></Link></Button>{canManageStocks ? <Button variant="outline" asChild className="justify-between"><Link href="/stocks"><span className="flex items-center gap-2"><Boxes size={17} /> Stocks</span><ArrowUpRight size={16} /></Link></Button> : null}{canManageClinic ? <Button variant="outline" asChild className="justify-between"><Link href="/clinic"><span className="flex items-center gap-2"><Stethoscope size={17} /> Clinique</span><ArrowUpRight size={16} /></Link></Button> : null}{canManageVisits ? <Button variant="outline" asChild className="justify-between"><Link href="/visits"><span className="flex items-center gap-2"><ClipboardList size={17} /> Visites</span><ArrowUpRight size={16} /></Link></Button> : null}{canManageIncidents ? <Button variant="outline" asChild className="justify-between"><Link href="/incidents"><span className="flex items-center gap-2"><Siren size={17} /> Incidents</span><ArrowUpRight size={16} /></Link></Button> : null}{canManageUsers ? <Button variant="outline" asChild className="justify-between"><Link href="/users"><span className="flex items-center gap-2"><CircleUserRound size={17} /> Gestion des utilisateurs</span><ArrowUpRight size={16} /></Link></Button> : null}{canManageUsers ? <Button variant="outline" asChild className="justify-between"><Link href="/magistrates"><span className="flex items-center gap-2"><Gavel size={17} /> Magistrats</span><ArrowUpRight size={16} /></Link></Button> : null}{canManageUsers ? <Button variant="outline" asChild className="justify-between"><Link href="/audit-log"><span className="flex items-center gap-2"><ScrollText size={17} /> Journal d’audit</span><ArrowUpRight size={16} /></Link></Button> : null}</div></div>
-            </section>
-            <section className="rounded-2xl border border-amber-300/70 bg-gradient-to-br from-amber-50/80 to-card p-5 shadow-sm dark:border-amber-900 dark:from-amber-950/30 dark:to-card md:p-6">
-                <div className="mb-4 flex flex-wrap items-end justify-between gap-3"><div><Heading variant="small" title="Cellules en surpopulation" description="Cellules classées selon le dépassement le plus élevé. Affichage des dix premières." /><label className="mt-3 block text-sm">Filtrer par établissement<select value={selectedEstablishmentId ?? ''} onChange={event => router.get('/dashboard', event.target.value ? { establishment_id: event.target.value } : {}, { preserveScroll: true })} className="mt-1 block w-full rounded-lg border bg-background px-3 py-2.5 shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-80"><option value="">Tous les établissements accessibles</option>{establishmentOccupancy.map(item => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select></label></div><Button variant="outline" size="sm" asChild><Link href="/reports/occupancy">Rapport complet</Link></Button><Button variant="outline" size="sm" asChild><a href={selectedEstablishmentId ? `/reports/overcrowding.csv?establishment_id=${selectedEstablishmentId}` : "/reports/overcrowding.csv"}><Download className="mr-2 size-4" />Exporter en CSV</a></Button></div>
-                {overcrowdedCells.length ? <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-muted/50"><tr className="border-b text-xs uppercase tracking-wide text-muted-foreground"><th className="px-3 py-3">Établissement</th><th className="px-3 py-3">Bâtiment / cellule</th><th className="px-3 py-3">Occupation / capacité</th><th className="px-3 py-3">Dépassement</th><th className="px-3 py-3">Détail</th></tr></thead><tbody>{overcrowdedCells.map(cell => <tr key={cell.id} className="border-b transition-colors last:border-0 hover:bg-muted/40"><td className="px-3 py-3"><p className="font-medium">{cell.establishmentName}</p><p className="text-xs text-muted-foreground">{cell.establishmentCode}</p></td><td className="px-3 py-3">{cell.buildingCode} — {cell.buildingName}<p className="text-xs text-muted-foreground">{cell.cellCode}{cell.cellName ? ` — ${cell.cellName}` : ''}</p></td><td className="px-3 py-3">{cell.occupied} / {cell.capacity}</td><td className="px-3 py-3 font-semibold text-amber-700 dark:text-amber-400">+{cell.excess}</td><td className="px-3 py-3"><Button variant="outline" size="sm" asChild><Link href={`/establishments/${cell.establishmentId}/structure`}>Ouvrir</Link></Button></td></tr>)}</tbody></table></div> : <p className="rounded-md bg-muted/40 p-4 text-sm text-muted-foreground">{selectedEstablishmentId ? 'Aucune cellule en surpopulation dans cet établissement.' : 'Aucune cellule en surpopulation pour les établissements accessibles.'}</p>}
-            </section>            <section className="rounded-2xl border bg-card p-5 shadow-sm md:p-6">
-                <div className="mb-4"><Heading variant="small" title="Occupation par établissement" description="Comparez les personnes affectées à la capacité enregistrée et repérez les dépassements." /></div>
-                {establishmentOccupancy.length ? <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-muted/50"><tr className="border-b text-xs uppercase tracking-wide text-muted-foreground"><th className="px-3 py-3">Établissement</th><th className="px-3 py-3">Détenus présents</th><th className="px-3 py-3">Occupation / capacité</th><th className="px-3 py-3">Taux</th><th className="px-3 py-3">État</th><th className="px-3 py-3">Structure</th></tr></thead><tbody>{establishmentOccupancy.map(item => <tr key={item.id} className="border-b transition-colors last:border-0 hover:bg-muted/40"><td className="px-3 py-3"><p className="font-medium">{item.name}</p><p className="text-xs text-muted-foreground">{item.code}{item.city ? ` · ${item.city}` : ''}{item.province ? ` · ${item.province}` : ''}</p></td><td className="px-3 py-3 font-medium">{item.activeDetainees}</td><td className="px-3 py-3">{item.occupiedPlaces} / {item.capacity || '—'}</td><td className="px-3 py-3">{item.capacity > 0 ? `${item.occupancyRate} %` : '—'}</td><td className="px-3 py-3">{item.excess > 0 ? <span className="font-medium text-amber-700 dark:text-amber-400">Surpopulation : +{item.excess}</span> : <span className="text-muted-foreground">{item.capacity > 0 ? 'Dans la capacité' : 'Capacité non renseignée'}</span>}</td><td className="px-3 py-3"><Button variant="outline" size="sm" asChild><Link href={`/establishments/${item.id}/structure`}>Voir les cellules</Link></Button></td></tr>)}</tbody></table></div> : <p className="rounded-md bg-muted/40 p-4 text-sm text-muted-foreground">Aucun établissement actif n’est associé à votre compte.</p>}
-            </section></main>
-    </>;
+    return (
+        <>
+            <Head title="Tableau de bord SIGEC" />
+            <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 md:gap-8 md:p-8">
+                <div className="flex flex-wrap items-end justify-between gap-4 rounded-2xl border bg-gradient-to-r from-primary/5 via-card to-card p-5 shadow-sm md:p-7">
+                    <Heading
+                        variant="small"
+                        title="Tableau de bord"
+                        description="Vue d’ensemble de la gestion carcérale dans vos établissements."
+                    />
+                    <span className="rounded-full border bg-background px-3 py-1.5 text-xs text-muted-foreground">
+                        SIGEC · Gestion carcérale
+                    </span>
+                </div>
+                <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {cards.map((card) => (
+                        <article
+                            key={card.label}
+                            className="group rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+                        >
+                            <div className="flex items-start justify-between gap-3">
+                                <span className="text-sm font-medium text-muted-foreground">
+                                    {card.label}
+                                </span>
+                                <span className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                                    <card.icon className="size-5" />
+                                </span>
+                            </div>
+                            <div className="mt-5 text-3xl font-semibold tracking-tight tabular-nums">
+                                {card.value}
+                            </div>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                {card.note}
+                            </p>
+                        </article>
+                    ))}
+                </section>
+                {canManageIncidents || canManageClinic || canManageVisits ? (
+                    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                        {canManageIncidents ? (
+                            <Link
+                                href="/incidents"
+                                className="rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">
+                                        Incidents à traiter
+                                    </span>
+                                    <Siren className="size-5 text-primary" />
+                                </div>
+                                <div className="mt-5 text-3xl font-semibold tracking-tight">
+                                    {stats.openIncidents}
+                                </div>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Signalements non clôturés
+                                </p>
+                            </Link>
+                        ) : null}
+                        {canManageClinic ? (
+                            <Link
+                                href="/clinic"
+                                className="rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">
+                                        Consultations ce mois
+                                    </span>
+                                    <Stethoscope className="size-5 text-primary" />
+                                </div>
+                                <div className="mt-5 text-3xl font-semibold tracking-tight">
+                                    {stats.monthConsultations}
+                                </div>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Depuis le début du mois
+                                </p>
+                            </Link>
+                        ) : null}
+                        {canManageVisits ? (
+                            <Link
+                                href="/visits"
+                                className="rounded-2xl border bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm text-muted-foreground">
+                                        Visites prévues aujourd’hui
+                                    </span>
+                                    <ClipboardList className="size-5 text-primary" />
+                                </div>
+                                <div className="mt-5 text-3xl font-semibold tracking-tight">
+                                    {stats.todayVisits}
+                                </div>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    Programmées ou en cours
+                                </p>
+                            </Link>
+                        ) : null}
+                    </section>
+                ) : null}
+                <section className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+                    <div className="rounded-2xl border bg-card p-5 shadow-sm md:p-6">
+                        <Heading
+                            variant="small"
+                            title="Occupation des cellules"
+                            description="Affectations actives par rapport à la capacité totale enregistrée."
+                        />
+                        <div className="mt-6 flex items-baseline justify-between">
+                            <span className="text-2xl font-semibold">
+                                {stats.occupiedPlaces}{' '}
+                                <span className="text-sm font-normal text-muted-foreground">
+                                    place(s) affectée(s)
+                                </span>
+                            </span>
+                            <span className="text-sm text-muted-foreground">
+                                Capacité : {stats.capacity}
+                            </span>
+                        </div>
+                        <div className="mt-3 h-3 overflow-hidden rounded-full bg-muted">
+                            <div
+                                className="h-full rounded-full bg-primary transition-all"
+                                style={{ width: `${occupancy}%` }}
+                            />
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">
+                            {stats.capacity > 0
+                                ? `${occupancyRate} % de la capacité enregistrée`
+                                : 'Aucune capacité de cellule n’est encore enregistrée.'}
+                        </p>
+                        {stats.occupiedPlaces > stats.capacity && (
+                            <p className="mt-2 text-sm font-medium text-amber-700 dark:text-amber-400">
+                                Surpopulation :{' '}
+                                {stats.occupiedPlaces - stats.capacity}{' '}
+                                personne(s) au-delà de la capacité.
+                            </p>
+                        )}
+                    </div>
+                    <div className="rounded-2xl border bg-card p-5 shadow-sm md:p-6">
+                        <Heading
+                            variant="small"
+                            title="Accès rapides"
+                            description="Ouvrir un module de gestion."
+                        />
+                        <div className="mt-4 grid gap-2">
+                            <Button asChild className="justify-between">
+                                <Link href="/establishments">
+                                    <span className="flex items-center gap-2">
+                                        <Building2 size={17} /> Établissements
+                                    </span>
+                                    <ArrowUpRight size={16} />
+                                </Link>
+                            </Button>
+                            <Button
+                                variant="outline"
+                                asChild
+                                className="justify-between"
+                            >
+                                <Link href="/detainees">
+                                    <span className="flex items-center gap-2">
+                                        <UsersRound size={17} /> Dossiers des
+                                        détenus
+                                    </span>
+                                    <ArrowUpRight size={16} />
+                                </Link>
+                            </Button>
+                            {canManageStocks ? (
+                                <Button
+                                    variant="outline"
+                                    asChild
+                                    className="justify-between"
+                                >
+                                    <Link href="/stocks">
+                                        <span className="flex items-center gap-2">
+                                            <Boxes size={17} /> Stocks
+                                        </span>
+                                        <ArrowUpRight size={16} />
+                                    </Link>
+                                </Button>
+                            ) : null}
+                            {canManageClinic ? (
+                                <Button
+                                    variant="outline"
+                                    asChild
+                                    className="justify-between"
+                                >
+                                    <Link href="/clinic">
+                                        <span className="flex items-center gap-2">
+                                            <Stethoscope size={17} /> Clinique
+                                        </span>
+                                        <ArrowUpRight size={16} />
+                                    </Link>
+                                </Button>
+                            ) : null}
+                            {canManageVisits ? (
+                                <Button
+                                    variant="outline"
+                                    asChild
+                                    className="justify-between"
+                                >
+                                    <Link href="/visits">
+                                        <span className="flex items-center gap-2">
+                                            <ClipboardList size={17} /> Visites
+                                        </span>
+                                        <ArrowUpRight size={16} />
+                                    </Link>
+                                </Button>
+                            ) : null}
+                            {canManageIncidents ? (
+                                <Button
+                                    variant="outline"
+                                    asChild
+                                    className="justify-between"
+                                >
+                                    <Link href="/incidents">
+                                        <span className="flex items-center gap-2">
+                                            <Siren size={17} /> Incidents
+                                        </span>
+                                        <ArrowUpRight size={16} />
+                                    </Link>
+                                </Button>
+                            ) : null}
+                            {canManageUsers ? (
+                                <Button
+                                    variant="outline"
+                                    asChild
+                                    className="justify-between"
+                                >
+                                    <Link href="/users">
+                                        <span className="flex items-center gap-2">
+                                            <CircleUserRound size={17} />{' '}
+                                            Gestion des utilisateurs
+                                        </span>
+                                        <ArrowUpRight size={16} />
+                                    </Link>
+                                </Button>
+                            ) : null}
+                            {canManageUsers ? (
+                                <Button
+                                    variant="outline"
+                                    asChild
+                                    className="justify-between"
+                                >
+                                    <Link href="/magistrates">
+                                        <span className="flex items-center gap-2">
+                                            <Gavel size={17} /> Magistrats
+                                        </span>
+                                        <ArrowUpRight size={16} />
+                                    </Link>
+                                </Button>
+                            ) : null}
+                            {canManageUsers ? (
+                                <Button
+                                    variant="outline"
+                                    asChild
+                                    className="justify-between"
+                                >
+                                    <Link href="/audit-log">
+                                        <span className="flex items-center gap-2">
+                                            <ScrollText size={17} /> Journal
+                                            d’audit
+                                        </span>
+                                        <ArrowUpRight size={16} />
+                                    </Link>
+                                </Button>
+                            ) : null}
+                        </div>
+                    </div>
+                </section>
+                <section className="rounded-2xl border border-amber-300/70 bg-gradient-to-br from-amber-50/80 to-card p-5 shadow-sm md:p-6 dark:border-amber-900 dark:from-amber-950/30 dark:to-card">
+                    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+                        <div>
+                            <Heading
+                                variant="small"
+                                title="Cellules en surpopulation"
+                                description="Cellules classées selon le dépassement le plus élevé. Affichage des dix premières."
+                            />
+                            <label className="mt-3 block text-sm">
+                                Filtrer par établissement
+                                <select
+                                    value={selectedEstablishmentId ?? ''}
+                                    onChange={(event) =>
+                                        router.get(
+                                            '/dashboard',
+                                            event.target.value
+                                                ? {
+                                                      establishment_id:
+                                                          event.target.value,
+                                                  }
+                                                : {},
+                                            { preserveScroll: true },
+                                        )
+                                    }
+                                    className="mt-1 block w-full rounded-lg border bg-background px-3 py-2.5 shadow-sm transition outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-80"
+                                >
+                                    <option value="">
+                                        Tous les établissements accessibles
+                                    </option>
+                                    {establishmentOccupancy.map((item) => (
+                                        <option key={item.id} value={item.id}>
+                                            {item.code} — {item.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </label>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href="/reports/occupancy">
+                                Rapport complet
+                            </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild>
+                            <a
+                                href={
+                                    selectedEstablishmentId
+                                        ? `/reports/overcrowding.csv?establishment_id=${selectedEstablishmentId}`
+                                        : '/reports/overcrowding.csv'
+                                }
+                            >
+                                <Download className="mr-2 size-4" />
+                                Exporter en CSV
+                            </a>
+                        </Button>
+                    </div>
+                    {overcrowdedCells.length ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-muted/50">
+                                    <tr className="border-b text-xs tracking-wide text-muted-foreground uppercase">
+                                        <th className="px-3 py-3">
+                                            Établissement
+                                        </th>
+                                        <th className="px-3 py-3">
+                                            Bâtiment / cellule
+                                        </th>
+                                        <th className="px-3 py-3">
+                                            Occupation / capacité
+                                        </th>
+                                        <th className="px-3 py-3">
+                                            Dépassement
+                                        </th>
+                                        <th className="px-3 py-3">Détail</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {overcrowdedCells.map((cell) => (
+                                        <tr
+                                            key={cell.id}
+                                            className="border-b transition-colors last:border-0 hover:bg-muted/40"
+                                        >
+                                            <td className="px-3 py-3">
+                                                <p className="font-medium">
+                                                    {cell.establishmentName}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {cell.establishmentCode}
+                                                </p>
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                {cell.buildingCode} —{' '}
+                                                {cell.buildingName}
+                                                <p className="text-xs text-muted-foreground">
+                                                    {cell.cellCode}
+                                                    {cell.cellName
+                                                        ? ` — ${cell.cellName}`
+                                                        : ''}
+                                                </p>
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                {cell.occupied} /{' '}
+                                                {cell.capacity}
+                                            </td>
+                                            <td className="px-3 py-3 font-semibold text-amber-700 dark:text-amber-400">
+                                                +{cell.excess}
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    asChild
+                                                >
+                                                    <Link
+                                                        href={`/establishments/${cell.establishmentId}/structure`}
+                                                    >
+                                                        Ouvrir
+                                                    </Link>
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="rounded-md bg-muted/40 p-4 text-sm text-muted-foreground">
+                            {selectedEstablishmentId
+                                ? 'Aucune cellule en surpopulation dans cet établissement.'
+                                : 'Aucune cellule en surpopulation pour les établissements accessibles.'}
+                        </p>
+                    )}
+                </section>{' '}
+                <section className="rounded-2xl border bg-card p-5 shadow-sm md:p-6">
+                    <div className="mb-4">
+                        <Heading
+                            variant="small"
+                            title="Occupation par établissement"
+                            description="Comparez les personnes affectées à la capacité enregistrée et repérez les dépassements."
+                        />
+                    </div>
+                    {establishmentOccupancy.length ? (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left text-sm">
+                                <thead className="bg-muted/50">
+                                    <tr className="border-b text-xs tracking-wide text-muted-foreground uppercase">
+                                        <th className="px-3 py-3">
+                                            Établissement
+                                        </th>
+                                        <th className="px-3 py-3">
+                                            Détenus présents
+                                        </th>
+                                        <th className="px-3 py-3">
+                                            Occupation / capacité
+                                        </th>
+                                        <th className="px-3 py-3">Taux</th>
+                                        <th className="px-3 py-3">État</th>
+                                        <th className="px-3 py-3">Structure</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {establishmentOccupancy.map((item) => (
+                                        <tr
+                                            key={item.id}
+                                            className="border-b transition-colors last:border-0 hover:bg-muted/40"
+                                        >
+                                            <td className="px-3 py-3">
+                                                <p className="font-medium">
+                                                    {item.name}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {item.code}
+                                                    {item.city
+                                                        ? ` · ${item.city}`
+                                                        : ''}
+                                                    {item.province
+                                                        ? ` · ${item.province}`
+                                                        : ''}
+                                                </p>
+                                            </td>
+                                            <td className="px-3 py-3 font-medium">
+                                                {item.activeDetainees}
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                {item.occupiedPlaces} /{' '}
+                                                {item.capacity || '—'}
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                {item.capacity > 0
+                                                    ? `${item.occupancyRate} %`
+                                                    : '—'}
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                {item.excess > 0 ? (
+                                                    <span className="font-medium text-amber-700 dark:text-amber-400">
+                                                        Surpopulation : +
+                                                        {item.excess}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-muted-foreground">
+                                                        {item.capacity > 0
+                                                            ? 'Dans la capacité'
+                                                            : 'Capacité non renseignée'}
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-3 py-3">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    asChild
+                                                >
+                                                    <Link
+                                                        href={`/establishments/${item.id}/structure`}
+                                                    >
+                                                        Voir les cellules
+                                                    </Link>
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="rounded-md bg-muted/40 p-4 text-sm text-muted-foreground">
+                            Aucun établissement actif n’est associé à votre
+                            compte.
+                        </p>
+                    )}
+                </section>
+            </main>
+        </>
+    );
 }
-SigecDashboard.layout = { breadcrumbs: [{ title: 'Tableau de bord', href: '/dashboard' }] };
-
-
-
+SigecDashboard.layout = {
+    breadcrumbs: [{ title: 'Tableau de bord', href: '/dashboard' }],
+};

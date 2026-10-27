@@ -34,4 +34,3 @@ export function NavMain({ items }: { items: NavItem[] }) {
         </SidebarGroup>
     );
 }
-

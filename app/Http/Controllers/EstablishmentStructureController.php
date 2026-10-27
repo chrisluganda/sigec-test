@@ -2,15 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Cell;
 use App\Models\CellAssignment;
-use App\Models\AuditLog;
 use App\Models\Detainee;
 use App\Models\Establishment;
 use App\Models\EstablishmentBuilding;
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -72,6 +72,7 @@ class EstablishmentStructureController extends Controller
             'name' => ['required', 'string', 'max:255'], 'building_type' => ['nullable', 'string', 'max:100'], 'notes' => ['nullable', 'string', 'max:2000'],
         ]);
         $establishment->buildings()->create($data);
+
         return back()->with('success', 'Bâtiment ajouté.');
     }
 
@@ -160,6 +161,7 @@ class EstablishmentStructureController extends Controller
                 ]);
             }
         });
+
         return back()->with('success', 'Affectation enregistrée.');
     }
 
@@ -187,6 +189,7 @@ class EstablishmentStructureController extends Controller
                 ]);
             }
         });
+
         return back()->with('success', 'Affectation clôturée.');
     }
 
@@ -231,9 +234,9 @@ class EstablishmentStructureController extends Controller
 
         return back()->with('success', 'Déplacement interne enregistré.');
     }
+
     private function authorizeStructure(User $user, Establishment $establishment): void
     {
         abort_unless($user->is_active && ($user->is_central_admin || $user->hasEstablishmentRole($establishment->id, ['director', 'custody'])), 403);
     }
 }
-

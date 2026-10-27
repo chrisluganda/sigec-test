@@ -2,18 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AuditLog;
 use App\Models\Detainee;
 use App\Models\Establishment;
-use App\Models\AuditLog;
 use App\Models\PrisonVisit;
-use App\Models\Visitor;
 use App\Models\User;
-use Illuminate\Http\RedirectResponse;
+use App\Models\Visitor;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -93,7 +94,7 @@ class VisitsController extends Controller
             'establishments' => $establishments,
             'selectedEstablishmentId' => $selectedId,
             'hasDetainees' => $hasDetainees,
-            'selectedVisitor' => $visitor ? ['id' => $visitor->id, 'family_name' => $visitor->family_name, 'post_name' => $visitor->post_name, 'given_names' => $visitor->given_names, 'date_of_birth' => $visitor->date_of_birth?->toDateString(), 'place_of_birth' => $visitor->place_of_birth, 'document_type' => $visitor->document_type, 'document_reference' => $visitor->document_reference, 'phone' => $visitor->phone] : null,
+            'selectedVisitor' => $visitor ? ['id' => $visitor->id, 'family_name' => $visitor->family_name, 'post_name' => $visitor->post_name, 'given_names' => $visitor->given_names, 'date_of_birth' => ($visitor->date_of_birth ? Carbon::parse($visitor->date_of_birth)->toDateString() : null), 'place_of_birth' => $visitor->place_of_birth, 'document_type' => $visitor->document_type, 'document_reference' => $visitor->document_reference, 'phone' => $visitor->phone] : null,
             'selectedDetainee' => $detainee ? ['id' => $detainee->id, 'label' => $detainee->record_number.' — '.$detainee->family_name.' '.($detainee->post_name ? $detainee->post_name.' ' : '').$detainee->given_names] : null,
             'success' => $request->session()->get('success'),
         ]);
@@ -151,7 +152,7 @@ class VisitsController extends Controller
             throw ValidationException::withMessages(['detainee_id' => 'Cette personne n’est pas actuellement détenue dans cet établissement.']);
         }
         if (! empty($data['visitor_id'])) {
-            $visitor = Visitor::query()->where('establishment_id', $data['establishment_id'])->where('is_active', true)->findOrFail($data['visitor_id']);
+            $visitor = Visitor::query()->where('establishment_id', $data['establishment_id'])->where('is_active', true)->findOrFail((int) $data['visitor_id']);
         } else {
             $visitor = Visitor::query()->create([
                 'establishment_id' => $data['establishment_id'], 'family_name' => $data['family_name'], 'post_name' => $data['post_name'] ?? null, 'given_names' => $data['given_names'],
@@ -161,7 +162,8 @@ class VisitsController extends Controller
             ]);
             AuditLog::query()->create(['actor_id' => $request->user()->id, 'establishment_id' => $data['establishment_id'], 'event' => 'visitor.created', 'subject_type' => 'visitor', 'subject_id' => $visitor->id, 'summary' => 'Visiteur enregistré']);
         }
-        return redirect()->route('visits.create', array_filter(['establishment_id' => $data['establishment_id'], 'visitor_id' => $visitor->id, 'detainee_id' => $data['detainee_id'] ?? null]))->with('success', 'Visiteur sélectionné. Vérifiez la personne détenue, puis programmez la visite.');
+
+        return redirect()->route('visits.create', array_filter(['establishment_id' => $data['establishment_id'], 'visitor_id' => $visitor->id, 'detainee_id' => $data['detainee_id'] ?? null]))->with('success', 'Visiteur sélectionné. Vérifiez les renseignements puis enregistrez son arrivée.');
     }
 
     public function store(Request $request): RedirectResponse
@@ -188,7 +190,7 @@ class VisitsController extends Controller
         $arrivedAt = now();
         DB::transaction(function () use ($data, $request, $establishment, $arrivedAt) {
             if (! empty($data['visitor_id'])) {
-                $visitor = Visitor::query()->findOrFail($data['visitor_id']);
+                $visitor = Visitor::query()->findOrFail((int) $data['visitor_id']);
                 $visitor->update([
                     'family_name' => ($data['family_name'] ?? null) ?: $visitor->family_name,
                     'post_name' => $data['post_name'] ?? $visitor->post_name,
@@ -246,6 +248,7 @@ class VisitsController extends Controller
 
         return redirect()->route('visits.index', ['establishment_id' => $establishment->id])->with('success', 'Arrivée du visiteur enregistrée. À sa sortie, marquez la visite comme terminée.');
     }
+
     public function updateStatus(Request $request, PrisonVisit $visit): RedirectResponse
     {
         $this->authorizeVisitAccess($request->user(), $visit->establishment_id);
@@ -306,6 +309,7 @@ class VisitsController extends Controller
             $existing = PrisonVisit::query()->where('offline_reference', $data['offline_reference'])->first();
             if ($existing) {
                 abort_unless($existing->establishment_id === $establishment->id, 409, 'Cette référence a déjà été utilisée dans un autre établissement.');
+
                 return [$existing, true];
             }
 

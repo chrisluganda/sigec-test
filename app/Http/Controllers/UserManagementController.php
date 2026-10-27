@@ -98,7 +98,3 @@ class UserManagementController extends Controller
         abort_unless($user->is_active && $user->is_central_admin, 403);
     }
 }
-
-
-
-

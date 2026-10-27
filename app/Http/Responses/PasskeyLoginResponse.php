@@ -15,5 +15,3 @@ class PasskeyLoginResponse implements PasskeyLoginResponseContract
             : redirect('/dashboard');
     }
 }
-
-

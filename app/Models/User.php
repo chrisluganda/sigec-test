@@ -31,6 +31,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property int|null $current_team_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property-read Collection<int, Establishment> $establishments
  * @property-read Team|null $currentTeam
  * @property-read Collection<int, Team> $ownedTeams
  * @property-read Collection<int, Membership> $teamMemberships
@@ -56,6 +57,7 @@ class User extends Authenticatable implements PasskeyUser
         ];
     }
 
+    /** @return BelongsToMany<Establishment, $this> */
     public function establishments(): BelongsToMany
     {
         return $this->belongsToMany(Establishment::class, 'establishment_user_access')
@@ -63,6 +65,7 @@ class User extends Authenticatable implements PasskeyUser
             ->withTimestamps();
     }
 
+    /** @param string|array<int, string> $roles */
     public function hasEstablishmentRole(int $establishmentId, string|array $roles): bool
     {
         if ($this->is_central_admin && $this->is_active) {
@@ -78,5 +81,3 @@ class User extends Authenticatable implements PasskeyUser
             ->exists();
     }
 }
-
-

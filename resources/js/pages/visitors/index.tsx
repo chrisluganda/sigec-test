@@ -6,31 +6,436 @@ import { Button } from '@/components/ui/button';
 import { SearchableSelect, SearchOption } from '@/components/searchable-select';
 
 type Establishment = { id: number; code: string; name: string };
-type Visitor = { id: number; family_name: string; post_name: string | null; given_names: string; date_of_birth: string | null; place_of_birth: string | null; document_type: string | null; document_reference: string | null; phone: string | null; is_active: boolean; visits_count: number };
-type Props = { establishments: Establishment[]; selectedEstablishmentId: number; hasDetainees: boolean; visitors: { data: Visitor[]; links: { url: string | null; label: string; active: boolean }[]; total: number }; success: string | null };
-const pageLabel = (label: string) => label.replace(/&laquo;|&raquo;/g, '').replace('Previous', 'Précédent').replace('Next', 'Suivant').trim();
+type Visitor = {
+    id: number;
+    family_name: string;
+    post_name: string | null;
+    given_names: string;
+    date_of_birth: string | null;
+    place_of_birth: string | null;
+    document_type: string | null;
+    document_reference: string | null;
+    phone: string | null;
+    is_active: boolean;
+    visits_count: number;
+};
+type Props = {
+    establishments: Establishment[];
+    selectedEstablishmentId: number;
+    hasDetainees: boolean;
+    visitors: {
+        data: Visitor[];
+        links: { url: string | null; label: string; active: boolean }[];
+        total: number;
+    };
+    success: string | null;
+};
+const pageLabel = (label: string) =>
+    label
+        .replace(/&laquo;|&raquo;/g, '')
+        .replace('Previous', 'Précédent')
+        .replace('Next', 'Suivant')
+        .trim();
 
-export default function VisitorsIndex({ establishments, selectedEstablishmentId, hasDetainees, visitors, success }: Props) {
-    const [selectedDetainee, setSelectedDetainee] = useState<SearchOption | null>(null);
-    const [selectedVisitor, setSelectedVisitor] = useState<SearchOption | null>(null);
-    const form = useForm({ establishment_id: selectedEstablishmentId, visitor_id: '', family_name: '', post_name: '', given_names: '', date_of_birth: '', place_of_birth: '', document_type: '', document_reference: '', phone: '', detainee_id: '' });
-    useEffect(() => { setSelectedDetainee(null); form.setData({ ...form.data, establishment_id: selectedEstablishmentId, detainee_id: '' }); }, [selectedEstablishmentId]);
-    function submit(event: FormEvent) { event.preventDefault(); form.post('/visitors'); }
-    return <>
-        <Head title="Registre des visiteurs" />
-        <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-5 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3"><Heading variant="small" title="Registre des visiteurs" description="Enregistrez un visiteur avant de programmer une visite à une personne détenue." /><Button variant="outline" asChild><Link href={`/visits?establishment_id=${selectedEstablishmentId}`}><ClipboardList size={16} className="mr-2" />Registre des visites</Link></Button></div>
-            {success ? <p className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-900">{success}</p> : null}
-            <div className="rounded-lg border bg-card p-4"><label htmlFor="visitors-establishment" className="text-sm font-medium">Établissement</label><select id="visitors-establishment" value={selectedEstablishmentId} onChange={event => router.get('/visitors', { establishment_id: Number(event.target.value) })} className="mt-2 w-full max-w-xl rounded-md border bg-background px-3 py-2 text-sm">{establishments.map(item => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select></div>
-            <form onSubmit={submit} className="space-y-4 rounded-lg border bg-card p-5"><h2 className="flex items-center gap-2 font-semibold"><UserRoundPlus size={18} />Enregistrer ou retrouver un visiteur</h2><SearchableSelect label="Visiteur déjà enregistré (facultatif)" placeholder="Nom ou référence de pièce" searchUrl={`/establishments/${selectedEstablishmentId}/visit-visitors`} selected={selectedVisitor} onSelect={option => { setSelectedVisitor(option); form.setData({ ...form.data, visitor_id: option?.id.toString() ?? '', family_name: option ? '' : form.data.family_name, given_names: option ? '' : form.data.given_names }); }} /><p className="text-xs text-muted-foreground">Choisissez un visiteur existant pour éviter un doublon, ou laissez ce champ vide pour saisir une nouvelle identité.</p>
-                {!selectedVisitor ? <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"><label className="text-sm">Nom<input required value={form.data.family_name} onChange={event => form.setData('family_name', event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2" />{form.errors.family_name && <small className="text-destructive">{form.errors.family_name}</small>}</label><label className="text-sm">Post-nom (facultatif)<input value={form.data.post_name} onChange={event => form.setData('post_name', event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2" /></label><label className="text-sm">Prénom<input required value={form.data.given_names} onChange={event => form.setData('given_names', event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2" />{form.errors.given_names && <small className="text-destructive">{form.errors.given_names}</small>}</label><label className="text-sm">Date de naissance (facultatif)<input type="date" value={form.data.date_of_birth} onChange={event => form.setData('date_of_birth', event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2" /></label><label className="text-sm">Lieu de naissance (facultatif)<input value={form.data.place_of_birth} onChange={event => form.setData('place_of_birth', event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2" /></label><label className="text-sm">Téléphone<input value={form.data.phone} onChange={event => form.setData('phone', event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2" />{form.errors.phone && <small className="text-destructive">{form.errors.phone}</small>}</label><label className="text-sm">Type de pièce<input value={form.data.document_type} onChange={event => form.setData('document_type', event.target.value)} placeholder="Carte d’identité…" className="mt-1 w-full rounded-md border bg-background px-3 py-2" /></label><label className="text-sm">Référence de la pièce<input value={form.data.document_reference} onChange={event => form.setData('document_reference', event.target.value)} className="mt-1 w-full rounded-md border bg-background px-3 py-2" />{form.errors.document_reference && <small className="text-destructive">{form.errors.document_reference}</small>}</label></div> : <p className="rounded-md border bg-muted/30 p-3 text-sm">Visiteur sélectionné : <strong>{selectedVisitor.label}</strong>. Ses renseignements existants seront conservés.</p>}
-                <div><SearchableSelect label="Personne détenue à visiter (facultatif)" placeholder="Numéro de dossier, nom ou prénom" searchUrl={`/establishments/${selectedEstablishmentId}/visit-detainees`} selected={selectedDetainee} disabled={!hasDetainees} onSelect={option => { setSelectedDetainee(option); form.setData('detainee_id', option?.id.toString() ?? ''); }} error={form.errors.detainee_id} />{!hasDetainees ? <small className="text-muted-foreground">Aucune personne détenue active dans cet établissement.</small> : <small className="text-muted-foreground">La sélection sera reprise sur la page de programmation.</small>}</div>
-                <Button disabled={form.processing}>{form.processing ? 'Enregistrement…' : 'Enregistrer puis programmer une visite'}</Button>
-            </form>
-            <section className="space-y-3"><Heading variant="small" title="Visiteurs enregistrés" description={`${visitors.total} visiteur(s) dans cet établissement.`} />{visitors.data.length ? <div className="overflow-x-auto rounded-lg border"><table className="w-full min-w-[720px] text-left text-sm"><thead className="bg-muted/50"><tr><th className="px-4 py-3">Visiteur</th><th className="px-4 py-3">Naissance</th><th className="px-4 py-3">Pièce d’identité</th><th className="px-4 py-3">Téléphone</th><th className="px-4 py-3">Visites</th><th className="px-4 py-3">Action</th></tr></thead><tbody>{visitors.data.map(visitor => <tr key={visitor.id} className="border-t"><td className="px-4 py-3 font-medium">{visitor.family_name} {visitor.post_name ?? ''} {visitor.given_names}{!visitor.is_active ? <span className="ml-2 text-xs text-muted-foreground">Inactif</span> : null}</td><td className="px-4 py-3">{visitor.date_of_birth ?? '—'}<br />{visitor.place_of_birth ?? ''}</td><td className="px-4 py-3">{visitor.document_type ?? '—'}{visitor.document_reference ? ` · ${visitor.document_reference}` : ''}</td><td className="px-4 py-3">{visitor.phone ?? '—'}</td><td className="px-4 py-3">{visitor.visits_count}</td><td className="px-4 py-3">{visitor.is_active ? <Button size="sm" variant="outline" asChild><Link href={`/visits/create?establishment_id=${selectedEstablishmentId}&visitor_id=${visitor.id}`}>Programmer</Link></Button> : '—'}</td></tr>)}</tbody></table></div> : <p className="rounded-lg border p-6 text-center text-sm text-muted-foreground">Aucun visiteur enregistré dans cet établissement.</p>}
-                <nav aria-label="Pages des visiteurs" className="flex flex-wrap gap-1">{visitors.links.map((link, index) => link.url ? <Link key={index} href={link.url} preserveScroll className={`rounded border px-3 py-1.5 text-sm ${link.active ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-accent'}`}>{pageLabel(link.label)}</Link> : <span key={index} className="rounded border px-3 py-1.5 text-sm text-muted-foreground">{pageLabel(link.label)}</span>)}</nav>
-            </section>
-        </main>
-    </>;
+export default function VisitorsIndex({
+    establishments,
+    selectedEstablishmentId,
+    hasDetainees,
+    visitors,
+    success,
+}: Props) {
+    const [selectedDetainee, setSelectedDetainee] =
+        useState<SearchOption | null>(null);
+    const [selectedVisitor, setSelectedVisitor] = useState<SearchOption | null>(
+        null,
+    );
+    const form = useForm({
+        establishment_id: selectedEstablishmentId,
+        visitor_id: '',
+        family_name: '',
+        post_name: '',
+        given_names: '',
+        date_of_birth: '',
+        place_of_birth: '',
+        document_type: '',
+        document_reference: '',
+        phone: '',
+        detainee_id: '',
+    });
+    useEffect(() => {
+        setSelectedDetainee(null);
+        form.setData({
+            ...form.data,
+            establishment_id: selectedEstablishmentId,
+            detainee_id: '',
+        });
+    }, [selectedEstablishmentId]);
+    function submit(event: FormEvent) {
+        event.preventDefault();
+        form.post('/visitors');
+    }
+    return (
+        <>
+            <Head title="Registre des visiteurs" />
+            <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-5 md:p-8">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <Heading
+                        variant="small"
+                        title="Registre des visiteurs"
+                        description="Enregistrez un visiteur avant de programmer une visite à une personne détenue."
+                    />
+                    <Button variant="outline" asChild>
+                        <Link
+                            href={`/visits?establishment_id=${selectedEstablishmentId}`}
+                        >
+                            <ClipboardList size={16} className="mr-2" />
+                            Registre des visites
+                        </Link>
+                    </Button>
+                </div>
+                {success ? (
+                    <p className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-900">
+                        {success}
+                    </p>
+                ) : null}
+                <div className="rounded-lg border bg-card p-4">
+                    <label
+                        htmlFor="visitors-establishment"
+                        className="text-sm font-medium"
+                    >
+                        Établissement
+                    </label>
+                    <select
+                        id="visitors-establishment"
+                        value={selectedEstablishmentId}
+                        onChange={(event) =>
+                            router.get('/visitors', {
+                                establishment_id: Number(event.target.value),
+                            })
+                        }
+                        className="mt-2 w-full max-w-xl rounded-md border bg-background px-3 py-2 text-sm"
+                    >
+                        {establishments.map((item) => (
+                            <option key={item.id} value={item.id}>
+                                {item.code} — {item.name}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+                <form
+                    onSubmit={submit}
+                    className="space-y-4 rounded-lg border bg-card p-5"
+                >
+                    <h2 className="flex items-center gap-2 font-semibold">
+                        <UserRoundPlus size={18} />
+                        Enregistrer ou retrouver un visiteur
+                    </h2>
+                    <SearchableSelect
+                        label="Visiteur déjà enregistré (facultatif)"
+                        placeholder="Nom ou référence de pièce"
+                        searchUrl={`/establishments/${selectedEstablishmentId}/visit-visitors`}
+                        selected={selectedVisitor}
+                        onSelect={(option) => {
+                            setSelectedVisitor(option);
+                            form.setData({
+                                ...form.data,
+                                visitor_id: option?.id.toString() ?? '',
+                                family_name: option
+                                    ? ''
+                                    : form.data.family_name,
+                                given_names: option
+                                    ? ''
+                                    : form.data.given_names,
+                            });
+                        }}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                        Choisissez un visiteur existant pour éviter un doublon,
+                        ou laissez ce champ vide pour saisir une nouvelle
+                        identité.
+                    </p>
+                    {!selectedVisitor ? (
+                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                            <label className="text-sm">
+                                Nom
+                                <input
+                                    required
+                                    value={form.data.family_name}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'family_name',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                                />
+                                {form.errors.family_name && (
+                                    <small className="text-destructive">
+                                        {form.errors.family_name}
+                                    </small>
+                                )}
+                            </label>
+                            <label className="text-sm">
+                                Post-nom (facultatif)
+                                <input
+                                    value={form.data.post_name}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'post_name',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                                />
+                            </label>
+                            <label className="text-sm">
+                                Prénom
+                                <input
+                                    required
+                                    value={form.data.given_names}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'given_names',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                                />
+                                {form.errors.given_names && (
+                                    <small className="text-destructive">
+                                        {form.errors.given_names}
+                                    </small>
+                                )}
+                            </label>
+                            <label className="text-sm">
+                                Date de naissance (facultatif)
+                                <input
+                                    type="date"
+                                    value={form.data.date_of_birth}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'date_of_birth',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                                />
+                            </label>
+                            <label className="text-sm">
+                                Lieu de naissance (facultatif)
+                                <input
+                                    value={form.data.place_of_birth}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'place_of_birth',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                                />
+                            </label>
+                            <label className="text-sm">
+                                Téléphone
+                                <input
+                                    value={form.data.phone}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'phone',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                                />
+                                {form.errors.phone && (
+                                    <small className="text-destructive">
+                                        {form.errors.phone}
+                                    </small>
+                                )}
+                            </label>
+                            <label className="text-sm">
+                                Type de pièce
+                                <input
+                                    value={form.data.document_type}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'document_type',
+                                            event.target.value,
+                                        )
+                                    }
+                                    placeholder="Carte d’identité…"
+                                    className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                                />
+                            </label>
+                            <label className="text-sm">
+                                Référence de la pièce
+                                <input
+                                    value={form.data.document_reference}
+                                    onChange={(event) =>
+                                        form.setData(
+                                            'document_reference',
+                                            event.target.value,
+                                        )
+                                    }
+                                    className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                                />
+                                {form.errors.document_reference && (
+                                    <small className="text-destructive">
+                                        {form.errors.document_reference}
+                                    </small>
+                                )}
+                            </label>
+                        </div>
+                    ) : (
+                        <p className="rounded-md border bg-muted/30 p-3 text-sm">
+                            Visiteur sélectionné :{' '}
+                            <strong>{selectedVisitor.label}</strong>. Ses
+                            renseignements existants seront conservés.
+                        </p>
+                    )}
+                    <div>
+                        <SearchableSelect
+                            label="Personne détenue à visiter (facultatif)"
+                            placeholder="Numéro de dossier, nom ou prénom"
+                            searchUrl={`/establishments/${selectedEstablishmentId}/visit-detainees`}
+                            selected={selectedDetainee}
+                            disabled={!hasDetainees}
+                            onSelect={(option) => {
+                                setSelectedDetainee(option);
+                                form.setData(
+                                    'detainee_id',
+                                    option?.id.toString() ?? '',
+                                );
+                            }}
+                            error={form.errors.detainee_id}
+                        />
+                        {!hasDetainees ? (
+                            <small className="text-muted-foreground">
+                                Aucune personne détenue active dans cet
+                                établissement.
+                            </small>
+                        ) : (
+                            <small className="text-muted-foreground">
+                                La sélection sera reprise sur la page de
+                                programmation.
+                            </small>
+                        )}
+                    </div>
+                    <Button disabled={form.processing}>
+                        {form.processing
+                            ? 'Enregistrement…'
+                            : 'Enregistrer puis programmer une visite'}
+                    </Button>
+                </form>
+                <section className="space-y-3">
+                    <Heading
+                        variant="small"
+                        title="Visiteurs enregistrés"
+                        description={`${visitors.total} visiteur(s) dans cet établissement.`}
+                    />
+                    {visitors.data.length ? (
+                        <div className="overflow-x-auto rounded-lg border">
+                            <table className="w-full min-w-[720px] text-left text-sm">
+                                <thead className="bg-muted/50">
+                                    <tr>
+                                        <th className="px-4 py-3">Visiteur</th>
+                                        <th className="px-4 py-3">Naissance</th>
+                                        <th className="px-4 py-3">
+                                            Pièce d’identité
+                                        </th>
+                                        <th className="px-4 py-3">Téléphone</th>
+                                        <th className="px-4 py-3">Visites</th>
+                                        <th className="px-4 py-3">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {visitors.data.map((visitor) => (
+                                        <tr
+                                            key={visitor.id}
+                                            className="border-t"
+                                        >
+                                            <td className="px-4 py-3 font-medium">
+                                                {visitor.family_name}{' '}
+                                                {visitor.post_name ?? ''}{' '}
+                                                {visitor.given_names}
+                                                {!visitor.is_active ? (
+                                                    <span className="ml-2 text-xs text-muted-foreground">
+                                                        Inactif
+                                                    </span>
+                                                ) : null}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {visitor.date_of_birth ?? '—'}
+                                                <br />
+                                                {visitor.place_of_birth ?? ''}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {visitor.document_type ?? '—'}
+                                                {visitor.document_reference
+                                                    ? ` · ${visitor.document_reference}`
+                                                    : ''}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {visitor.phone ?? '—'}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {visitor.visits_count}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                {visitor.is_active ? (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        asChild
+                                                    >
+                                                        <Link
+                                                            href={`/visits/create?establishment_id=${selectedEstablishmentId}&visitor_id=${visitor.id}`}
+                                                        >
+                                                            Programmer
+                                                        </Link>
+                                                    </Button>
+                                                ) : (
+                                                    '—'
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="rounded-lg border p-6 text-center text-sm text-muted-foreground">
+                            Aucun visiteur enregistré dans cet établissement.
+                        </p>
+                    )}
+                    <nav
+                        aria-label="Pages des visiteurs"
+                        className="flex flex-wrap gap-1"
+                    >
+                        {visitors.links.map((link, index) =>
+                            link.url ? (
+                                <Link
+                                    key={index}
+                                    href={link.url}
+                                    preserveScroll
+                                    className={`rounded border px-3 py-1.5 text-sm ${link.active ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-accent'}`}
+                                >
+                                    {pageLabel(link.label)}
+                                </Link>
+                            ) : (
+                                <span
+                                    key={index}
+                                    className="rounded border px-3 py-1.5 text-sm text-muted-foreground"
+                                >
+                                    {pageLabel(link.label)}
+                                </span>
+                            ),
+                        )}
+                    </nav>
+                </section>
+            </main>
+        </>
+    );
 }
-VisitorsIndex.layout = { breadcrumbs: [{ title: 'Visiteurs', href: '/visitors' }] };
+VisitorsIndex.layout = {
+    breadcrumbs: [{ title: 'Visiteurs', href: '/visitors' }],
+};

@@ -13,9 +13,9 @@ use App\Models\PrisonVisit;
 use App\Models\TeamInvitation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class DashboardController extends Controller
 {
@@ -211,7 +211,8 @@ class DashboardController extends Controller
             'filters' => ['establishment_id' => $selectedEstablishmentId, 'status' => $status, 'search' => $search],
         ]);
     }
-    public function occupancyCsv(Request $request)
+
+    public function occupancyCsv(Request $request): StreamedResponse
     {
         $user = $request->user();
         abort_unless($user->is_active, 403);
@@ -260,6 +261,10 @@ class DashboardController extends Controller
 
         return response()->streamDownload(function () use ($rows) {
             $output = fopen('php://output', 'w');
+            if (! is_resource($output)) {
+                return;
+            }
+
             fwrite($output, "\xEF\xBB\xBF");
             fputcsv($output, ['Code établissement', 'Établissement', 'Code bâtiment', 'Bâtiment', 'Code cellule', 'Nom cellule', 'Personnes affectées', 'Capacité', 'Occupation (%)', 'Dépassement', 'État'], ';');
             foreach ($rows as $row) {
@@ -276,7 +281,8 @@ class DashboardController extends Controller
             fclose($output);
         }, 'rapport-occupation-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
-    public function overcrowdingCsv(Request $request)
+
+    public function overcrowdingCsv(Request $request): StreamedResponse
     {
         $user = $request->user();
         abort_unless($user->is_active, 403);
@@ -313,6 +319,10 @@ class DashboardController extends Controller
 
         return response()->streamDownload(function () use ($rows) {
             $output = fopen('php://output', 'w');
+            if (! is_resource($output)) {
+                return;
+            }
+
             fwrite($output, "\xEF\xBB\xBF");
             fputcsv($output, ['Code établissement', 'Établissement', 'Code bâtiment', 'Bâtiment', 'Code cellule', 'Nom cellule', 'Personnes affectées', 'Capacité', 'Dépassement'], ';');
             foreach ($rows as $row) {
@@ -325,6 +335,7 @@ class DashboardController extends Controller
             fclose($output);
         }, 'rapport-surpopulation-'.now()->format('Y-m-d').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
+
     public function __invoke(Request $request): Response
     {
         $email = strtolower($request->user()->email);
@@ -345,5 +356,3 @@ class DashboardController extends Controller
         return Inertia::render('dashboard', ['pendingInvitations' => $pendingInvitations]);
     }
 }
-
-

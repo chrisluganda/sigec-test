@@ -4,31 +4,327 @@ import { Head, Link, router } from '@inertiajs/react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 
-type Cell = { id: number; cell_code: string; cell_name: string | null; capacity: number; occupied: number; building_code: string; building_name: string; establishment_id: number; establishment_code: string; establishment_name: string };
-type Filters = { establishment_id: number | null; status: string; search: string };
-type Props = { cells: { data: Cell[]; links: { url: string | null; label: string; active: boolean }[]; total: number }; establishments: { id: number; code: string; name: string }[]; filters: Filters };
-const pageLabel = (label: string) => label.replace(/&laquo;|&raquo;/g, '').replace('Previous', 'Précédent').replace('Next', 'Suivant').trim();
+type Cell = {
+    id: number;
+    cell_code: string;
+    cell_name: string | null;
+    capacity: number;
+    occupied: number;
+    building_code: string;
+    building_name: string;
+    establishment_id: number;
+    establishment_code: string;
+    establishment_name: string;
+};
+type Filters = {
+    establishment_id: number | null;
+    status: string;
+    search: string;
+};
+type Props = {
+    cells: {
+        data: Cell[];
+        links: { url: string | null; label: string; active: boolean }[];
+        total: number;
+    };
+    establishments: { id: number; code: string; name: string }[];
+    filters: Filters;
+};
+const pageLabel = (label: string) =>
+    label
+        .replace(/&laquo;|&raquo;/g, '')
+        .replace('Previous', 'Précédent')
+        .replace('Next', 'Suivant')
+        .trim();
 
-export default function OccupancyReport({ cells, establishments, filters: initialFilters }: Props) {
+export default function OccupancyReport({
+    cells,
+    establishments,
+    filters: initialFilters,
+}: Props) {
     const [filters, setFilters] = useState(initialFilters);
-    function submit(event: FormEvent) { event.preventDefault(); router.get('/reports/occupancy', filters, { preserveState: true, replace: true }); }
-    function reset() { const empty = { establishment_id: null, status: 'all', search: '' }; setFilters(empty); router.get('/reports/occupancy', {}, { replace: true }); }
-    return <>
-        <Head title="Rapport d’occupation des cellules" />
-        <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-5 md:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3 print:hidden"><Heading variant="small" title="Rapport d’occupation" description="État détaillé de toutes les cellules actives et de leur capacité." /><div className="flex gap-2"><Button variant="outline" onClick={() => window.print()}><Printer className="mr-2 size-4" />Imprimer / PDF</Button><Button variant="outline" asChild><Link href="/dashboard">Retour au tableau de bord</Link></Button></div></div>
-<div className="hidden print:block"><h1 className="text-xl font-semibold">Rapport d’occupation des cellules</h1><p className="mt-1 text-sm">Édité le {new Date().toLocaleString('fr-FR')} · Établissement : {filters.establishment_id ? establishments.find(item => item.id === filters.establishment_id)?.name : 'Tous les établissements accessibles'} · État : {filters.status}</p></div>
-            <form onSubmit={submit} className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2 xl:grid-cols-4 print:hidden">
-                <label className="text-sm">Établissement<select value={filters.establishment_id ?? ''} onChange={event => setFilters({ ...filters, establishment_id: event.target.value ? Number(event.target.value) : null })} className="mt-1 w-full rounded-md border bg-background px-3 py-2"><option value="">Tous les établissements accessibles</option>{establishments.map(item => <option key={item.id} value={item.id}>{item.code} — {item.name}</option>)}</select></label>
-                <label className="text-sm">État<select value={filters.status} onChange={event => setFilters({ ...filters, status: event.target.value })} className="mt-1 w-full rounded-md border bg-background px-3 py-2"><option value="all">Tous les états</option><option value="overcrowded">En surpopulation</option><option value="within_capacity">Occupées sans dépassement</option><option value="empty">Vides</option></select></label>
-                <label className="text-sm">Recherche<input value={filters.search} maxLength={100} onChange={event => setFilters({ ...filters, search: event.target.value })} placeholder="Établissement, bâtiment ou cellule" className="mt-1 w-full rounded-md border bg-background px-3 py-2" /></label>
-                <div className="flex items-end gap-2"><Button type="submit">Filtrer</Button><Button type="button" variant="outline" onClick={reset}>Réinitialiser</Button></div>
-            </form>
-            <section className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-3 print:hidden"><div><h2 className="font-semibold">Cellules</h2><span className="text-sm text-muted-foreground">{cells.total} résultat(s)</span></div><Button variant="outline" size="sm" asChild><a href={`/reports/occupancy.csv?${new URLSearchParams({ ...(filters.establishment_id ? { establishment_id: String(filters.establishment_id) } : {}), status: filters.status, ...(filters.search.trim() ? { search: filters.search.trim() } : {}) }).toString()}`}><Download className="mr-2 size-4" />Exporter en CSV</a></Button></div>
-                {cells.data.length ? <div className="overflow-x-auto rounded-lg border print:overflow-visible"><table className="w-full min-w-[850px] text-left text-sm print:min-w-0"><thead className="bg-muted/50"><tr><th className="px-4 py-3">Établissement</th><th className="px-4 py-3">Bâtiment / cellule</th><th className="px-4 py-3">Occupation / capacité</th><th className="px-4 py-3">Taux</th><th className="px-4 py-3">État</th><th className="px-4 py-3 print:hidden">Action</th></tr></thead><tbody>{cells.data.map(cell => { const excess = Number(cell.occupied) - Number(cell.capacity); const rate = cell.capacity > 0 ? Math.round((Number(cell.occupied) / Number(cell.capacity)) * 100) : 0; return <tr key={cell.id} className="border-t"><td className="px-4 py-3"><p className="font-medium">{cell.establishment_name}</p><p className="text-xs text-muted-foreground">{cell.establishment_code}</p></td><td className="px-4 py-3">{cell.building_code} — {cell.building_name}<p className="text-xs text-muted-foreground">{cell.cell_code}{cell.cell_name ? ` — ${cell.cell_name}` : ''}</p></td><td className="px-4 py-3">{cell.occupied} / {cell.capacity}</td><td className="px-4 py-3">{rate} %</td><td className="px-4 py-3">{excess > 0 ? <span className="font-medium text-amber-700 dark:text-amber-400">Surpopulation : +{excess}</span> : Number(cell.occupied) === 0 ? 'Vide' : 'Dans la capacité'}</td><td className="px-4 py-3 print:hidden"><Button size="sm" variant="outline" asChild><Link href={`/establishments/${cell.establishment_id}/structure`}>Structure</Link></Button></td></tr>; })}</tbody></table></div> : <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">Aucune cellule ne correspond à ces critères.</p>}
-            </section>
-            <nav aria-label="Pages du rapport" className="flex flex-wrap gap-1 print:hidden">{cells.links.map((link, index) => link.url ? <Link key={index} href={link.url} preserveScroll className={`rounded border px-3 py-1.5 text-sm ${link.active ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-accent'}`}>{pageLabel(link.label)}</Link> : <span key={index} className="rounded border px-3 py-1.5 text-sm text-muted-foreground">{pageLabel(link.label)}</span>)}</nav>
-        </main>
-    </>;
+    function submit(event: FormEvent) {
+        event.preventDefault();
+        router.get('/reports/occupancy', filters, {
+            preserveState: true,
+            replace: true,
+        });
+    }
+    function reset() {
+        const empty = { establishment_id: null, status: 'all', search: '' };
+        setFilters(empty);
+        router.get('/reports/occupancy', {}, { replace: true });
+    }
+    return (
+        <>
+            <Head title="Rapport d’occupation des cellules" />
+            <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-5 md:p-8">
+                <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+                    <Heading
+                        variant="small"
+                        title="Rapport d’occupation"
+                        description="État détaillé de toutes les cellules actives et de leur capacité."
+                    />
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={() => window.print()}
+                        >
+                            <Printer className="mr-2 size-4" />
+                            Imprimer / PDF
+                        </Button>
+                        <Button variant="outline" asChild>
+                            <Link href="/dashboard">
+                                Retour au tableau de bord
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
+                <div className="hidden print:block">
+                    <h1 className="text-xl font-semibold">
+                        Rapport d’occupation des cellules
+                    </h1>
+                    <p className="mt-1 text-sm">
+                        Édité le {new Date().toLocaleString('fr-FR')} ·
+                        Établissement :{' '}
+                        {filters.establishment_id
+                            ? establishments.find(
+                                  (item) =>
+                                      item.id === filters.establishment_id,
+                              )?.name
+                            : 'Tous les établissements accessibles'}{' '}
+                        · État : {filters.status}
+                    </p>
+                </div>
+                <form
+                    onSubmit={submit}
+                    className="grid gap-3 rounded-lg border bg-card p-4 sm:grid-cols-2 xl:grid-cols-4 print:hidden"
+                >
+                    <label className="text-sm">
+                        Établissement
+                        <select
+                            value={filters.establishment_id ?? ''}
+                            onChange={(event) =>
+                                setFilters({
+                                    ...filters,
+                                    establishment_id: event.target.value
+                                        ? Number(event.target.value)
+                                        : null,
+                                })
+                            }
+                            className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                        >
+                            <option value="">
+                                Tous les établissements accessibles
+                            </option>
+                            {establishments.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                    {item.code} — {item.name}
+                                </option>
+                            ))}
+                        </select>
+                    </label>
+                    <label className="text-sm">
+                        État
+                        <select
+                            value={filters.status}
+                            onChange={(event) =>
+                                setFilters({
+                                    ...filters,
+                                    status: event.target.value,
+                                })
+                            }
+                            className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                        >
+                            <option value="all">Tous les états</option>
+                            <option value="overcrowded">
+                                En surpopulation
+                            </option>
+                            <option value="within_capacity">
+                                Occupées sans dépassement
+                            </option>
+                            <option value="empty">Vides</option>
+                        </select>
+                    </label>
+                    <label className="text-sm">
+                        Recherche
+                        <input
+                            value={filters.search}
+                            maxLength={100}
+                            onChange={(event) =>
+                                setFilters({
+                                    ...filters,
+                                    search: event.target.value,
+                                })
+                            }
+                            placeholder="Établissement, bâtiment ou cellule"
+                            className="mt-1 w-full rounded-md border bg-background px-3 py-2"
+                        />
+                    </label>
+                    <div className="flex items-end gap-2">
+                        <Button type="submit">Filtrer</Button>
+                        <Button type="button" variant="outline" onClick={reset}>
+                            Réinitialiser
+                        </Button>
+                    </div>
+                </form>
+                <section className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+                        <div>
+                            <h2 className="font-semibold">Cellules</h2>
+                            <span className="text-sm text-muted-foreground">
+                                {cells.total} résultat(s)
+                            </span>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                            <a
+                                href={`/reports/occupancy.csv?${new URLSearchParams({ ...(filters.establishment_id ? { establishment_id: String(filters.establishment_id) } : {}), status: filters.status, ...(filters.search.trim() ? { search: filters.search.trim() } : {}) }).toString()}`}
+                            >
+                                <Download className="mr-2 size-4" />
+                                Exporter en CSV
+                            </a>
+                        </Button>
+                    </div>
+                    {cells.data.length ? (
+                        <div className="overflow-x-auto rounded-lg border print:overflow-visible">
+                            <table className="w-full min-w-[850px] text-left text-sm print:min-w-0">
+                                <thead className="bg-muted/50">
+                                    <tr>
+                                        <th className="px-4 py-3">
+                                            Établissement
+                                        </th>
+                                        <th className="px-4 py-3">
+                                            Bâtiment / cellule
+                                        </th>
+                                        <th className="px-4 py-3">
+                                            Occupation / capacité
+                                        </th>
+                                        <th className="px-4 py-3">Taux</th>
+                                        <th className="px-4 py-3">État</th>
+                                        <th className="px-4 py-3 print:hidden">
+                                            Action
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {cells.data.map((cell) => {
+                                        const excess =
+                                            Number(cell.occupied) -
+                                            Number(cell.capacity);
+                                        const rate =
+                                            cell.capacity > 0
+                                                ? Math.round(
+                                                      (Number(cell.occupied) /
+                                                          Number(
+                                                              cell.capacity,
+                                                          )) *
+                                                          100,
+                                                  )
+                                                : 0;
+                                        return (
+                                            <tr
+                                                key={cell.id}
+                                                className="border-t"
+                                            >
+                                                <td className="px-4 py-3">
+                                                    <p className="font-medium">
+                                                        {
+                                                            cell.establishment_name
+                                                        }
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {
+                                                            cell.establishment_code
+                                                        }
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {cell.building_code} —{' '}
+                                                    {cell.building_name}
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {cell.cell_code}
+                                                        {cell.cell_name
+                                                            ? ` — ${cell.cell_name}`
+                                                            : ''}
+                                                    </p>
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {cell.occupied} /{' '}
+                                                    {cell.capacity}
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {rate} %
+                                                </td>
+                                                <td className="px-4 py-3">
+                                                    {excess > 0 ? (
+                                                        <span className="font-medium text-amber-700 dark:text-amber-400">
+                                                            Surpopulation : +
+                                                            {excess}
+                                                        </span>
+                                                    ) : Number(
+                                                          cell.occupied,
+                                                      ) === 0 ? (
+                                                        'Vide'
+                                                    ) : (
+                                                        'Dans la capacité'
+                                                    )}
+                                                </td>
+                                                <td className="px-4 py-3 print:hidden">
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        asChild
+                                                    >
+                                                        <Link
+                                                            href={`/establishments/${cell.establishment_id}/structure`}
+                                                        >
+                                                            Structure
+                                                        </Link>
+                                                    </Button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : (
+                        <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+                            Aucune cellule ne correspond à ces critères.
+                        </p>
+                    )}
+                </section>
+                <nav
+                    aria-label="Pages du rapport"
+                    className="flex flex-wrap gap-1 print:hidden"
+                >
+                    {cells.links.map((link, index) =>
+                        link.url ? (
+                            <Link
+                                key={index}
+                                href={link.url}
+                                preserveScroll
+                                className={`rounded border px-3 py-1.5 text-sm ${link.active ? 'bg-primary text-primary-foreground' : 'bg-background hover:bg-accent'}`}
+                            >
+                                {pageLabel(link.label)}
+                            </Link>
+                        ) : (
+                            <span
+                                key={index}
+                                className="rounded border px-3 py-1.5 text-sm text-muted-foreground"
+                            >
+                                {pageLabel(link.label)}
+                            </span>
+                        ),
+                    )}
+                </nav>
+            </main>
+        </>
+    );
 }
-OccupancyReport.layout = { breadcrumbs: [{ title: 'Tableau de bord', href: '/dashboard' }, { title: 'Rapport d’occupation', href: '/reports/occupancy' }] };
+OccupancyReport.layout = {
+    breadcrumbs: [
+        { title: 'Tableau de bord', href: '/dashboard' },
+        { title: 'Rapport d’occupation', href: '/reports/occupancy' },
+    ],
+};

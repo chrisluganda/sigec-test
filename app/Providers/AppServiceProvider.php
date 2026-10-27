@@ -12,8 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
-use Throwable;
 use Illuminate\Validation\Rules\Password;
+use Throwable;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -41,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
         });
 
         Event::listen(Logout::class, function (Logout $event): void {
-            $this->recordAuthenticationEvent('auth.logout', 'Déconnexion', $event->user?->getAuthIdentifier(), $event->user?->getAuthIdentifier(), [
+            $this->recordAuthenticationEvent('auth.logout', 'Déconnexion', $event->user->getAuthIdentifier(), $event->user->getAuthIdentifier(), [
                 'result' => 'logout',
                 'guard' => $event->guard,
             ]);
@@ -49,7 +49,7 @@ class AppServiceProvider extends ServiceProvider
 
         Event::listen(Failed::class, function (Failed $event): void {
             $identifier = $event->credentials['email'] ?? $event->credentials['username'] ?? null;
-            $this->recordAuthenticationEvent('auth.failed', 'Tentative de connexion échouée', null, $event->user?->getAuthIdentifier(), [
+            $this->recordAuthenticationEvent('auth.failed', 'Tentative de connexion échouée', null, $event->user->getAuthIdentifier(), [
                 'result' => 'failure',
                 'guard' => $event->guard,
                 'login_identifier' => is_string($identifier) ? mb_substr($identifier, 0, 255) : null,
@@ -57,6 +57,7 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
+    /** @param array<string, mixed> $metadata */
     private function recordAuthenticationEvent(string $event, string $summary, int|string|null $actorId, int|string|null $subjectId, array $metadata): void
     {
         try {

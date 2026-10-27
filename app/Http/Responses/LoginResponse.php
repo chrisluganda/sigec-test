@@ -15,5 +15,3 @@ class LoginResponse implements LoginResponseContract
             : redirect('/dashboard');
     }
 }
-
-

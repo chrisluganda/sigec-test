@@ -6,10 +6,17 @@ import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
-const localOfflineHost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
-if ((import.meta.env.PROD || localOfflineHost) && 'serviceWorker' in navigator) {
+const localOfflineHost = ['localhost', '127.0.0.1'].includes(
+    window.location.hostname,
+);
+if (
+    (import.meta.env.PROD || localOfflineHost) &&
+    'serviceWorker' in navigator
+) {
     window.addEventListener('load', () => {
-        void navigator.serviceWorker.register('/service-worker.js', { updateViaCache: 'none' });
+        void navigator.serviceWorker.register('/service-worker.js', {
+            updateViaCache: 'none',
+        });
     });
 }
 

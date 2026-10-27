@@ -4,11 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\AuditLog;
 use App\Models\Establishment;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AuditLogController extends Controller
 {
@@ -38,6 +40,10 @@ class AuditLogController extends Controller
 
         return response()->streamDownload(function () use ($filters): void {
             $output = fopen('php://output', 'w');
+            if (! is_resource($output)) {
+                return;
+            }
+
             fwrite($output, "\xEF\xBB\xBF");
             fputcsv($output, ['Date et heure', 'Action', 'Résultat', 'Utilisateur', 'Identifiant saisi', 'Adresse IP', 'Navigateur', 'Établissement', 'Objet', 'Résumé'], ';', '"', '\\');
 
@@ -45,10 +51,10 @@ class AuditLogController extends Controller
                 foreach ($logs as $log) {
                     $metadata = $log->metadata ?? [];
                     fputcsv($output, array_map($this->csvSafe(...), [
-                        $log->created_at?->toDateTimeString(),
+                        Carbon::parse($log->created_at)->toDateTimeString(),
                         $log->event,
                         $metadata['result'] ?? '',
-                        $log->actor?->name ?? '',
+                        $log->actor->name ?? '',
                         $metadata['login_identifier'] ?? '',
                         $metadata['ip'] ?? '',
                         $metadata['user_agent'] ?? '',
@@ -63,6 +69,7 @@ class AuditLogController extends Controller
         }, 'sigec-journal-audit-'.now()->format('Y-m-d-His').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
+    /** @return array<string, mixed> */
     private function validatedFilters(Request $request): array
     {
         return $request->validate([
@@ -73,6 +80,9 @@ class AuditLogController extends Controller
         ]);
     }
 
+    /** @param array<string, mixed> $filters
+     * @return Builder<AuditLog>
+     */
     private function queryLogs(array $filters)
     {
         return AuditLog::query()
@@ -85,6 +95,7 @@ class AuditLogController extends Controller
     private function csvSafe(mixed $value): string
     {
         $text = (string) ($value ?? '');
+
         return preg_match('/^\s*[=+\-@]/u', $text) ? "'".$text : $text;
     }
 }

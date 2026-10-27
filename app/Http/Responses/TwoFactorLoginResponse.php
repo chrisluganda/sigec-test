@@ -15,5 +15,3 @@ class TwoFactorLoginResponse implements TwoFactorLoginResponseContract
             : redirect('/dashboard');
     }
 }
-
-

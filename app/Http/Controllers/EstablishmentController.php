@@ -6,7 +6,6 @@ use App\Models\Establishment;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -87,6 +86,7 @@ class EstablishmentController extends Controller
         );
     }
 
+    /** @return array<string, array<int, mixed>> */
     private function rules(?Establishment $establishment = null): array
     {
         return [
@@ -119,11 +119,3 @@ class EstablishmentController extends Controller
         };
     }
 }
-
-
-
-
-
-
-
-

@@ -2,18 +2,17 @@
 
 namespace Tests\Feature;
 
-use App\Models\AuditLog;
 use App\Models\Cell;
 use App\Models\CellAssignment;
+use App\Models\Detainee;
+use App\Models\DetaineeAdmissionDraft;
 use App\Models\DetentionCase;
 use App\Models\DetentionOrder;
 use App\Models\DetentionStay;
-use App\Models\Detainee;
-use App\Models\DetaineeAdmissionDraft;
 use App\Models\Establishment;
 use App\Models\EstablishmentBuilding;
-use App\Models\InventoryItem;
 use App\Models\Incident;
+use App\Models\InventoryItem;
 use App\Models\User;
 use App\Models\Visitor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -97,7 +96,7 @@ class OperationalJourneysTest extends TestCase
         $this->assertDatabaseCount('stock_movements', 1);
     }
 
-    public function test_visitor_registration_and_visit_scheduling_follow_the_front_desk_journey(): void
+    public function test_visitor_registration_and_arrival_follow_the_front_desk_journey(): void
     {
         [$user, $establishment, $detainee] = $this->visitJourney();
 
@@ -124,10 +123,10 @@ class OperationalJourneysTest extends TestCase
             'scheduled_at' => now()->addHour()->format('Y-m-d H:i:s'),
         ])->assertRedirect();
 
-        $this->assertDatabaseHas('prison_visits', ['establishment_id' => $establishment->id, 'detainee_id' => $detainee->id, 'visitor_id' => $visitor->id, 'status' => 'scheduled']);
+        $this->assertDatabaseHas('prison_visits', ['establishment_id' => $establishment->id, 'detainee_id' => $detainee->id, 'visitor_id' => $visitor->id, 'status' => 'arrived']);
         $this->assertDatabaseHas('visitors', ['id' => $visitor->id, 'date_of_birth' => '1990-04-12 00:00:00', 'place_of_birth' => 'Goma']);
         $this->assertDatabaseHas('audit_logs', ['event' => 'visitor.created', 'establishment_id' => $establishment->id]);
-        $this->assertDatabaseHas('audit_logs', ['event' => 'visit.scheduled', 'establishment_id' => $establishment->id]);
+        $this->assertDatabaseHas('audit_logs', ['event' => 'visit.arrived', 'establishment_id' => $establishment->id]);
     }
 
     public function test_incident_can_be_reported_reviewed_and_resolved_with_action_history(): void

@@ -5,6 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property string $code
+ * @property string $name
+ * @property string $status
+ */
 class Establishment extends Model
 {
     protected $fillable = [
@@ -28,6 +34,7 @@ class Establishment extends Model
         'separate_pretrial_quarters',
     ];
 
+    /** @return HasMany<EstablishmentBuilding, $this> */
     public function buildings(): HasMany
     {
         return $this->hasMany(EstablishmentBuilding::class);
@@ -43,5 +50,3 @@ class Establishment extends Model
         ];
     }
 }
-
-
