@@ -31,7 +31,7 @@ Une pré-admission hors connexion reste un brouillon. Après synchronisation, un
 L’administration centrale gère le répertoire des magistrats. Les décisions de détention sont liées au dossier judiciaire; au moment de l’admission, le magistrat peut être associé à l’ordre.
 
 4. Visiteurs et visites
-Les fiches de détenus, visiteurs et magistrats distinguent le nom, le post-nom facultatif et le prénom. Le parcours permet d’enregistrer cette identité ou de retrouver un profil déjà inscrit afin d’éviter les doublons, de rechercher la personne détenue dans l’établissement, puis de programmer la visite. Le registre par jour et le dossier du détenu montrent les visites. Leur état peut évoluer de programmée à arrivée, terminée ou annulée.
+Les fiches de détenus, visiteurs et magistrats distinguent le nom, le post-nom facultatif et le prénom. Pour une visite, l’agent choisit d’abord le détenu, saisit l’identité du visiteur, puis enregistre son arrivée; l’heure est horodatée et la visite passe au statut « arrivée ». À la sortie, l’agent enregistre la fin de visite; le journal conserve l’heure de sortie et le statut « terminée ». Le registre par jour et le dossier du détenu montrent les visites.
 
 5. Stocks
 L’administration centrale gère le catalogue commun des articles. Dans chaque établissement, les agents autorisés enregistrent les entrées et sorties par emplacement, suivent les quantités et seuils de réapprovisionnement. Une sortie supérieure au stock disponible est refusée.
@@ -163,6 +163,7 @@ POLITIQUE DE MISE À JOUR DE CE README
 HISTORIQUE
 ----------
 2026-10-27 — Le changement d’établissement d’un utilisateur désactive ses anciens accès actifs. Ajout de la modification des noms de bâtiments et cellules. Après inscription, redirection vers le tableau de bord SIGEC plutôt que vers le tableau de bord générique de démonstration; libellés d’établissement précisés en français. Ces changements restent à publier sur Render.
+2026-10-27 — Le parcours des visites en ligne enregistre désormais l’arrivée à la saisie du visiteur; la sortie termine la visite et est horodatée depuis le journal. Le mode hors connexion utilise déjà le statut « arrivée » lors de la synchronisation.
 2026-10-21 — Recette navigateur : page hors connexion et connexion/inscription accessibles; remplacement des sessions et du cache SQLite locaux par le stockage fichier après un dépassement de délai. Traduction française des pages d’authentification. Ajout de DEPLOIEMENT.txt avec les constats et exigences; aucun déploiement ni migration de production effectué.
 2026-10-21 — Préparation sécurité : mise à jour verrouillée de tinypool en 2.1.2; audits Composer et npm production sans vulnérabilité. Alerte élevée persistante sur vite-plus 0.3.0; migration officielle non exécutée car son binding natif Windows temporaire était invalide. Compilation et 104 tests réussis.
 2026-10-21 — Vérification des parcours métier et des droits par tests automatisés. Correction du parcours de programmation d’une visite avec un visiteur déjà enregistré; ajout des tests de la matrice de rôles et des flux stock, visite, incident et pré-admission hors connexion.

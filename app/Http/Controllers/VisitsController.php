@@ -182,11 +182,11 @@ class VisitsController extends Controller
             'phone' => ['nullable', 'string', 'max:50'],
             'visit_type' => ['required', Rule::in(['family', 'legal', 'official', 'other'])],
             'relationship' => ['nullable', 'string', 'max:100'],
-            'scheduled_at' => ['required', 'date', 'after_or_equal:now'],
         ]);
         abort_unless(Detainee::query()->whereKey($data['detainee_id'])->whereHas('stays', fn ($query) => $query->where('establishment_id', $establishment->id)->whereNull('released_at'))->exists(), 422, 'Cette personne n’est pas actuellement détenue dans cet établissement.');
 
-        DB::transaction(function () use ($data, $request, $establishment) {
+        $arrivedAt = now();
+        DB::transaction(function () use ($data, $request, $establishment, $arrivedAt) {
             if (! empty($data['visitor_id'])) {
                 $visitor = Visitor::query()->findOrFail($data['visitor_id']);
                 $visitor->update([
@@ -228,21 +228,23 @@ class VisitsController extends Controller
                 'visitor_id' => $visitor->id,
                 'visit_type' => $data['visit_type'],
                 'relationship' => $data['relationship'] ?? null,
-                'scheduled_at' => $data['scheduled_at'],
-                'status' => 'scheduled',
+                'scheduled_at' => $arrivedAt,
+                'arrived_at' => $arrivedAt,
+                'status' => 'arrived',
                 'recorded_by' => $request->user()->id,
             ]);
             AuditLog::query()->create([
                 'actor_id' => $request->user()->id,
                 'establishment_id' => $establishment->id,
-                'event' => 'visit.scheduled',
+                'event' => 'visit.arrived',
                 'subject_type' => 'visit',
                 'subject_id' => $visit->id,
-                'summary' => 'Visite enregistrée',
+                'summary' => 'Arrivée du visiteur enregistrée',
+                'metadata' => ['status' => 'arrived'],
             ]);
         });
 
-        return redirect()->route('visits.index', ['establishment_id' => $establishment->id])->with('success', 'Visiteur et visite enregistrés.');
+        return redirect()->route('visits.index', ['establishment_id' => $establishment->id])->with('success', 'Arrivée du visiteur enregistrée. À sa sortie, marquez la visite comme terminée.');
     }
     public function updateStatus(Request $request, PrisonVisit $visit): RedirectResponse
     {

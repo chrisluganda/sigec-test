@@ -12,7 +12,6 @@ const visitTypes: Record<string, string> = { family: 'Familiale', legal: 'Juridi
 const inputClass = 'mt-1 w-full rounded-lg border bg-background px-3 py-2.5 text-sm shadow-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20';
 
 export default function CreateVisit({ establishments, selectedEstablishmentId, hasDetainees, selectedVisitor: initialVisitor, selectedDetainee: initialDetainee, success }: Props) {
-    const now = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     const [selectedDetainee, setSelectedDetainee] = useState<SearchOption | null>(initialDetainee);
     const form = useForm({
         establishment_id: selectedEstablishmentId, detainee_id: initialDetainee?.id.toString() ?? '',
@@ -20,7 +19,7 @@ export default function CreateVisit({ establishments, selectedEstablishmentId, h
         given_names: initialVisitor?.given_names ?? '', date_of_birth: initialVisitor?.date_of_birth ?? '',
         place_of_birth: initialVisitor?.place_of_birth ?? '', document_type: initialVisitor?.document_type ?? '',
         document_reference: initialVisitor?.document_reference ?? '', phone: initialVisitor?.phone ?? '',
-        visit_type: 'family', relationship: '', scheduled_at: now,
+        visit_type: 'family', relationship: '',
     });
     useEffect(() => {
         setSelectedDetainee(initialDetainee);
@@ -29,10 +28,10 @@ export default function CreateVisit({ establishments, selectedEstablishmentId, h
     function submit(event: FormEvent) { event.preventDefault(); form.post('/visits'); }
     const steps = ['Personne détenue', 'Identité du visiteur', 'Détails de la visite'];
     return <>
-        <Head title="Enregistrer une visite" />
+        <Head title="Enregistrer une arrivée" />
         <main className="mx-auto flex w-full max-w-4xl flex-col gap-6 p-4 md:gap-8 md:p-8">
             <header className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-gradient-to-r from-primary/5 via-card to-card p-5 shadow-sm md:p-7">
-                <Heading variant="small" title="Enregistrer une visite" description="Détenu visité, identité du visiteur, puis visite." />
+                <Heading variant="small" title="Enregistrer une arrivée" description="Choisissez le détenu, saisissez l’identité du visiteur, puis enregistrez son arrivée. La visite sera clôturée à sa sortie." />
                 <div className="flex flex-wrap gap-2"><Button variant="outline" asChild><a href="/offline-visits.html">Saisie hors connexion</a></Button><Button variant="outline" asChild><Link href={`/visits?establishment_id=${selectedEstablishmentId}`}>Retour au journal</Link></Button></div>
             </header>
             {success ? <p role="status" className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-900">{success}</p> : null}
@@ -56,16 +55,15 @@ export default function CreateVisit({ establishments, selectedEstablishmentId, h
                     </div>
                 </section>
                 <section className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm md:p-6">
-                    <div className="flex items-center gap-3"><span className="rounded-xl bg-primary/10 p-2.5 text-primary"><ClipboardList size={20} /></span><div><h2 className="font-semibold">3. Enregistrer la visite</h2><p className="text-sm text-muted-foreground">Précisez le lien avec le détenu et l’horaire prévu.</p></div></div>
+                    <div className="flex items-center gap-3"><span className="rounded-xl bg-primary/10 p-2.5 text-primary"><ClipboardList size={20} /></span><div><h2 className="font-semibold">3. Confirmer l’arrivée</h2><p className="text-sm text-muted-foreground">L’arrivée est horodatée automatiquement. À la sortie, la visite sera marquée terminée dans le journal.</p></div></div>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <label className="text-sm font-medium">Type de visite<select value={form.data.visit_type} onChange={event => form.setData('visit_type', event.target.value)} className={inputClass}>{Object.entries(visitTypes).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select>{form.errors.visit_type && <small className="text-destructive">{form.errors.visit_type}</small>}</label>
                         <label className="text-sm font-medium">Lien avec le détenu <span className="font-normal text-muted-foreground">(facultatif)</span><input value={form.data.relationship} onChange={event => form.setData('relationship', event.target.value)} placeholder="Parent, avocat…" className={inputClass} /></label>
-                        <label className="text-sm font-medium sm:col-span-2">Date et heure prévues<input required type="datetime-local" value={form.data.scheduled_at} onChange={event => form.setData('scheduled_at', event.target.value)} className={inputClass} />{form.errors.scheduled_at && <small className="text-destructive">{form.errors.scheduled_at}</small>}</label>
                     </div>
                 </section>
-                <div className="flex justify-end"><Button type="submit" size="lg" disabled={form.processing || !selectedDetainee}>{form.processing ? 'Enregistrement…' : 'Enregistrer la visite'}</Button></div>
+                <div className="flex justify-end"><Button type="submit" size="lg" disabled={form.processing || !selectedDetainee}>{form.processing ? 'Enregistrement…' : 'Enregistrer l’arrivée'}</Button></div>
             </form> : <p className="rounded-xl border border-dashed p-6 text-sm text-muted-foreground">Aucune personne détenue n’est actuellement présente dans cet établissement.</p>}
         </main>
     </>;
 }
-CreateVisit.layout = { breadcrumbs: [{ title: 'Visites', href: '/visits' }, { title: 'Enregistrer une visite', href: '/visits/create' }] };
+CreateVisit.layout = { breadcrumbs: [{ title: 'Visites', href: '/visits' }, { title: 'Enregistrer une arrivée', href: '/visits/create' }] };
