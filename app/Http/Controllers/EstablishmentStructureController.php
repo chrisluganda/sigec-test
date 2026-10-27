@@ -75,6 +75,18 @@ class EstablishmentStructureController extends Controller
         return back()->with('success', 'Bâtiment ajouté.');
     }
 
+    public function updateBuilding(Request $request, Establishment $establishment, EstablishmentBuilding $building): RedirectResponse
+    {
+        $this->authorizeStructure($request->user(), $establishment);
+        abort_unless($establishment->status === 'active', 403);
+        abort_unless($building->establishment_id === $establishment->id, 404);
+
+        $data = $request->validate(['name' => ['required', 'string', 'max:255']]);
+        $building->update($data);
+
+        return back()->with('success', 'Nom du bâtiment modifié.');
+    }
+
     public function storeCell(Request $request, Establishment $establishment): RedirectResponse
     {
         $this->authorizeStructure($request->user(), $establishment);
@@ -105,6 +117,18 @@ class EstablishmentStructureController extends Controller
         });
 
         return back()->with('success', count($data['cells']) === 1 ? 'Cellule ajoutée.' : count($data['cells']).' cellules ajoutées.');
+    }
+
+    public function updateCell(Request $request, Establishment $establishment, Cell $cell): RedirectResponse
+    {
+        $this->authorizeStructure($request->user(), $establishment);
+        abort_unless($establishment->status === 'active', 403);
+        abort_unless($cell->building()->where('establishment_id', $establishment->id)->exists(), 404);
+
+        $data = $request->validate(['name' => ['nullable', 'string', 'max:255']]);
+        $cell->update($data);
+
+        return back()->with('success', 'Nom de la cellule modifié.');
     }
 
     public function assign(Request $request, Establishment $establishment): RedirectResponse

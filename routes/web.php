@@ -75,7 +75,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('establishments/{establishment}/unassigned-detainees', [EstablishmentStructureController::class, 'searchUnassignedDetainees'])->name('establishments.detainees.search');
     Route::get('establishments/{establishment}/available-cells', [EstablishmentStructureController::class, 'searchAvailableCells'])->name('establishments.cells.search');
     Route::post('establishments/{establishment}/buildings', [EstablishmentStructureController::class, 'storeBuilding'])->name('establishments.buildings.store');
+    Route::patch('establishments/{establishment}/buildings/{building}', [EstablishmentStructureController::class, 'updateBuilding'])->name('establishments.buildings.update');
     Route::post('establishments/{establishment}/cells', [EstablishmentStructureController::class, 'storeCell'])->name('establishments.cells.store');
+    Route::patch('establishments/{establishment}/cells/{cell}', [EstablishmentStructureController::class, 'updateCell'])->name('establishments.cells.update');
     Route::post('establishments/{establishment}/cell-assignments', [EstablishmentStructureController::class, 'assign'])->name('establishments.cell-assignments.store');
     Route::post('establishments/{establishment}/cell-assignments/{assignment}/end', [EstablishmentStructureController::class, 'endAssignment'])->name('establishments.cell-assignments.end');
     Route::post('establishments/{establishment}/cell-assignments/{assignment}/move', [EstablishmentStructureController::class, 'moveAssignment'])->name('establishments.cell-assignments.move');

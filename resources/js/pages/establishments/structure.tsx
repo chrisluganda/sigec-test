@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,16 @@ export default function EstablishmentStructure({ establishment, buildings, hasUn
     const [selectedAssignmentDetainee, setSelectedAssignmentDetainee] = useState<SearchOption | null>(null);
     const [selectedAssignmentCell, setSelectedAssignmentCell] = useState<SearchOption | null>(null);
     function submitBuilding(event: FormEvent) { event.preventDefault(); buildingForm.post(`/establishments/${establishment.id}/buildings`, { onSuccess: () => buildingForm.reset() }); }
+    function renameBuilding(building: Building) {
+        const name = window.prompt('Nouveau nom du bâtiment :', building.name);
+        if (name === null || !name.trim() || name.trim() === building.name) return;
+        router.patch(`/establishments/${establishment.id}/buildings/${building.id}`, { name: name.trim() }, { preserveScroll: true });
+    }
+    function renameCell(cell: Cell) {
+        const name = window.prompt('Nouveau nom de la cellule :', cell.name ?? '');
+        if (name === null || name.trim() === (cell.name ?? '')) return;
+        router.patch(`/establishments/${establishment.id}/cells/${cell.id}`, { name: name.trim() || null }, { preserveScroll: true });
+    }
     function submitCell(event: FormEvent) { event.preventDefault(); cellForm.post(`/establishments/${establishment.id}/cells`, { onSuccess: () => cellForm.setData('cells', [{ code: '', name: '', capacity: 1, cell_type: '', notes: '' }]) }); }
     function submitAssignment(event: FormEvent) { event.preventDefault(); assignmentForm.post(`/establishments/${establishment.id}/cell-assignments`, { onSuccess: () => { assignmentForm.reset(); setSelectedAssignmentDetainee(null); setSelectedAssignmentCell(null); } }); }
     return <>
@@ -55,6 +65,13 @@ export default function EstablishmentStructure({ establishment, buildings, hasUn
             </section>
             <section className="space-y-4"><Heading variant="small" title="Occupation des cellules" description="Les places occupées sont calculées à partir des affectations en cours." />
                 {buildings.length === 0 ? <p className="rounded-lg border p-6 text-center text-muted-foreground">Aucun bâtiment n’est encore enregistré.</p> : buildings.map(building => <div key={building.id} className="overflow-hidden rounded-lg border"><div className="border-b bg-muted/40 px-4 py-3 font-medium">{building.code} — {building.name}</div>{building.cells.length === 0 ? <p className="p-4 text-sm text-muted-foreground">Aucune cellule dans ce bâtiment.</p> : <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b text-muted-foreground"><th className="px-4 py-3">Cellule</th><th className="px-4 py-3">Occupation</th><th className="px-4 py-3">Personnes affectées</th></tr></thead><tbody>{building.cells.map(cell => <tr key={cell.id} className="border-b last:border-0"><td className="px-4 py-3 font-medium">{cell.code}{cell.name ? ` — ${cell.name}` : ''}</td><td className="px-4 py-3"><span>{cell.occupied} / {cell.capacity}</span>{cell.occupied > cell.capacity && <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">Surpopulation : +{cell.occupied - cell.capacity}</p>}</td><td className="px-4 py-3"><div className="flex flex-col gap-3">{cell.active_assignments.length ? cell.active_assignments.map(a => <div key={a.id} className="rounded-md border p-2"><Link href={`/detainees/${a.detainee.id}`} className="font-medium text-primary hover:underline">{a.detainee.family_name} {a.detainee.post_name ?? ''} {a.detainee.given_names} · Ouvrir le dossier</Link><MoveAssignment establishmentId={establishment.id} assignmentId={a.id} /></div>) : 'Aucune'}</div></td></tr>)}</tbody></table></div>}</div>)}
+            </section>
+            <section className="space-y-3 rounded-lg border p-5">
+                <Heading variant="small" title="Modifier les noms" description="Les codes restent inchangés pour préserver les références existantes." />
+                {buildings.map(building => <div key={building.id} className="flex flex-wrap items-center justify-between gap-3 border-b py-3 last:border-0">
+                    <div><p className="font-medium">Bâtiment {building.code} — {building.name}</p><Button type="button" size="sm" variant="outline" className="mt-2" onClick={() => renameBuilding(building)}>Modifier le nom du bâtiment</Button></div>
+                    <div className="space-y-2">{building.cells.map(cell => <div key={cell.id} className="flex flex-wrap items-center justify-between gap-3"><span>{cell.code}{cell.name ? ` — ${cell.name}` : ''}</span><Button type="button" size="sm" variant="ghost" onClick={() => renameCell(cell)}>Modifier le nom de la cellule</Button></div>)}</div>
+                </div>)}
             </section>
             <form onSubmit={submitAssignment} className="grid gap-4 rounded-lg border p-5 md:grid-cols-[1fr_1fr_auto] md:items-end"><div><h2 className="mb-3 font-semibold">Affecter un détenu à une cellule</h2><SearchableSelect label="Détenu non affecté" placeholder="Numéro de dossier, nom ou prénom" searchUrl={`/establishments/${establishment.id}/unassigned-detainees`} selected={selectedAssignmentDetainee} onSelect={option => { setSelectedAssignmentDetainee(option); assignmentForm.setData('detainee_id', option?.id.toString() ?? ''); }} error={assignmentForm.errors.detainee_id} disabled={!hasUnassignedDetainees} /></div><SearchableSelect label="Cellule (capacité indicative)" placeholder="Code de cellule ou bâtiment" searchUrl={`/establishments/${establishment.id}/available-cells`} selected={selectedAssignmentCell} onSelect={option => { setSelectedAssignmentCell(option); assignmentForm.setData('cell_id', option?.id.toString() ?? ''); }} error={assignmentForm.errors.cell_id} disabled={!buildings.some(building => building.cells.length > 0)} /><Button disabled={assignmentForm.processing || !hasUnassignedDetainees || !selectedAssignmentCell || !selectedAssignmentDetainee}>Enregistrer</Button></form>
             {!hasUnassignedDetainees && <p className="text-sm text-muted-foreground">Aucun détenu non affecté n’est actuellement enregistré dans cet établissement.</p>}
