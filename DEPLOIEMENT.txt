@@ -78,3 +78,7 @@ Render est retenu pour une démonstration temporaire, exclusivement avec des don
 - Avant de considérer le pilote prêt, résoudre l'alerte npm élevée de vite-plus 0.3.0, pousser le code dans le dépôt privé, construire l'image et vérifier les migrations ainsi que les parcours sur l'URL Render.
 
 Ce déploiement gratuit sert à valider l'accès et les parcours avec des données de démonstration; il ne convient pas à l'exploitation ni au stockage durable.
+
+COURRIELS ET RÉINITIALISATION DU MOT DE PASSE
+---------------------------------------------
+En local, MAIL_MAILER=log écrit les messages dans storage/logs/laravel.log et ne les envoie pas. Pour envoyer les liens de réinitialisation en ligne avec l’API Resend, configurer dans l’environnement Render : MAIL_MAILER=resend, RESEND_API_KEY (clé privée créée dans Resend), MAIL_FROM_ADDRESS (adresse autorisée par Resend) et MAIL_FROM_NAME=SIGEC. Conserver APP_URL égal à l’URL publique Render. Ne jamais ajouter la clé API au dépôt. Après modification des variables Render, redéployer le service et vérifier l’envoi avec une adresse de test.
