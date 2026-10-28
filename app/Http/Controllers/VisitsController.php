@@ -33,16 +33,48 @@ class VisitsController extends Controller
 
         $selectedId = (int) $request->query('establishment_id', $establishments->first()?->id);
         abort_unless($establishments->contains('id', $selectedId), 403);
-        $filters = $request->validate(['date' => ['nullable', 'date']]);
+        $filters = $request->validate([
+            'date' => ['nullable', 'date'],
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', Rule::in(['arrived', 'scheduled', 'completed', 'cancelled', 'all'])],
+        ]);
         $selectedDate = $filters['date'] ?? today()->toDateString();
-        $visits = PrisonVisit::query()->with(['detainee:id,record_number,family_name,post_name,given_names', 'visitor:id,family_name,post_name,given_names,phone', 'recorder:id,name'])
-            ->where('establishment_id', $selectedId)->whereDate('scheduled_at', $selectedDate)
-            ->latest('scheduled_at')->paginate(50)->withQueryString();
+        $search = trim((string) ($filters['search'] ?? ''));
+        $status = $filters['status'] ?? 'arrived';
+        $searchTerms = array_slice(preg_split('/\s+/u', $search, -1, PREG_SPLIT_NO_EMPTY) ?: [], 0, 6);
+
+        $visits = PrisonVisit::query()
+            ->with(['detainee:id,record_number,family_name,post_name,given_names', 'visitor:id,family_name,post_name,given_names,phone', 'recorder:id,name'])
+            ->where('establishment_id', $selectedId)
+            ->whereDate('scheduled_at', $selectedDate)
+            ->when($status !== 'all', fn ($query) => $query->where('status', $status))
+            ->when($searchTerms !== [], function ($query) use ($searchTerms): void {
+                foreach ($searchTerms as $term) {
+                    $like = '%'.mb_strtolower($term).'%';
+                    $query->where(function ($match) use ($like): void {
+                        $match->whereHas('visitor', function ($visitor) use ($like): void {
+                            $visitor->whereRaw('LOWER(family_name) LIKE ?', [$like])
+                                ->orWhereRaw('LOWER(post_name) LIKE ?', [$like])
+                                ->orWhereRaw('LOWER(given_names) LIKE ?', [$like])
+                                ->orWhereRaw('LOWER(phone) LIKE ?', [$like]);
+                        })->orWhereHas('detainee', function ($detainee) use ($like): void {
+                            $detainee->whereRaw('LOWER(record_number) LIKE ?', [$like])
+                                ->orWhereRaw('LOWER(family_name) LIKE ?', [$like])
+                                ->orWhereRaw('LOWER(post_name) LIKE ?', [$like])
+                                ->orWhereRaw('LOWER(given_names) LIKE ?', [$like]);
+                        });
+                    });
+                }
+            })
+            ->latest('scheduled_at')
+            ->paginate(50)
+            ->withQueryString();
 
         return Inertia::render('visits/index', [
             'establishments' => $establishments,
             'selectedEstablishmentId' => $selectedId,
             'selectedDate' => $selectedDate,
+            'filters' => ['search' => $search, 'status' => $status],
             'visits' => $visits,
             'success' => $request->session()->get('success'),
         ]);

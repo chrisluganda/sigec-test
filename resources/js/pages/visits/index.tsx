@@ -1,5 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ClipboardList, UserRoundPlus } from 'lucide-react';
+import { useState } from 'react';
+import { ClipboardList, Search, UserRoundPlus } from 'lucide-react';
 import Heading from '@/components/heading';
 import { Button } from '@/components/ui/button';
 
@@ -34,6 +35,7 @@ type Props = {
     establishments: Establishment[];
     selectedEstablishmentId: number;
     selectedDate: string;
+    filters: { search: string; status: string };
     visits: {
         data: Visit[];
         links: { url: string | null; label: string; active: boolean }[];
@@ -58,9 +60,13 @@ export default function VisitsIndex({
     establishments,
     selectedEstablishmentId,
     selectedDate,
+    filters,
     visits,
     success,
 }: Props) {
+    const [searchTerm, setSearchTerm] = useState(filters.search);
+    const [status, setStatus] = useState(filters.status);
+
     function changeStatus(
         visit: Visit,
         status: 'arrived' | 'completed' | 'cancelled',
@@ -106,7 +112,22 @@ export default function VisitsIndex({
                         {success}
                     </p>
                 ) : null}
-                <div className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2">
+                <form
+                    onSubmit={(event) => {
+                        event.preventDefault();
+                        router.get(
+                            '/visits',
+                            {
+                                establishment_id: selectedEstablishmentId,
+                                date: selectedDate,
+                                search: searchTerm,
+                                status,
+                            },
+                            { preserveState: true, replace: true },
+                        );
+                    }}
+                    className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2 lg:grid-cols-5"
+                >
                     <label
                         htmlFor="visits-establishment"
                         className="text-sm font-medium"
@@ -121,6 +142,8 @@ export default function VisitsIndex({
                                         event.target.value,
                                     ),
                                     date: selectedDate,
+                                    search: searchTerm,
+                                    status,
                                 })
                             }
                             className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -145,21 +168,68 @@ export default function VisitsIndex({
                                 router.get('/visits', {
                                     establishment_id: selectedEstablishmentId,
                                     date: event.target.value,
+                                    search: searchTerm,
+                                    status,
                                 })
                             }
                             className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
                         />
                     </label>
-                </div>
+                    <label
+                        htmlFor="visits-search"
+                        className="text-sm font-medium lg:col-span-2"
+                    >
+                        Rechercher une personne
+                        <input
+                            id="visits-search"
+                            type="search"
+                            value={searchTerm}
+                            maxLength={100}
+                            onChange={(event) =>
+                                setSearchTerm(event.target.value)
+                            }
+                            placeholder="Nom, téléphone ou numéro du détenu"
+                            className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        />
+                    </label>
+                    <label
+                        htmlFor="visits-status"
+                        className="text-sm font-medium"
+                    >
+                        Statut
+                        <select
+                            id="visits-status"
+                            value={status}
+                            onChange={(event) => setStatus(event.target.value)}
+                            className="mt-2 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        >
+                            <option value="arrived">Encore présent(e)</option>
+                            <option value="scheduled">Programmée</option>
+                            <option value="completed">Terminée</option>
+                            <option value="cancelled">Annulée</option>
+                            <option value="all">Toutes les visites</option>
+                        </select>
+                    </label>
+                    <div className="sm:col-span-2 lg:col-span-5">
+                        <Button type="submit" variant="outline">
+                            <Search size={16} className="mr-2" />
+                            Rechercher
+                        </Button>
+                    </div>
+                </form>
                 <section className="space-y-3">
                     <div>
                         <Heading
                             variant="small"
-                            title="Journal quotidien des visites"
+                            title={
+                                status === 'arrived'
+                                    ? 'Visiteurs encore présents'
+                                    : 'Journal des visites'
+                            }
                             description="Suivez les arrivées et terminez les visites à la sortie."
                         />
                         <p className="text-sm text-muted-foreground">
-                            {visits.total} visite(s) le{' '}
+                            {visits.total} résultat(s) le{' '}
                             {new Date(
                                 `${selectedDate}T12:00:00`,
                             ).toLocaleDateString('fr-FR')}
@@ -318,8 +388,9 @@ export default function VisitsIndex({
                     ) : (
                         <div className="rounded-lg border border-dashed p-8 text-center">
                             <p className="text-sm text-muted-foreground">
-                                Aucune visite n’est enregistrée pour cette date
-                                dans cet établissement.
+                                Aucune visite ne correspond à ces filtres.
+                                Essayez un autre nom, un autre statut ou une
+                                autre date.
                             </p>
                             <Button className="mt-4" asChild>
                                 <Link
