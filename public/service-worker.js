@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sigec-static-v11';
+const CACHE_NAME = 'sigec-static-v12';
 const OFFLINE_PAGE = '/offline.html';
 const STATIC_PREFIX = '/build/assets/';
 

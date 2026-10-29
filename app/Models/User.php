@@ -51,9 +51,7 @@ class User extends Authenticatable implements PasskeyUser
             'password' => 'hashed',
             'is_central_admin' => 'boolean',
             'is_active' => 'boolean',
-            /* @chisel-2fa */
             'two_factor_confirmed_at' => 'datetime',
-            /* @end-chisel-2fa */
         ];
     }
 
@@ -76,6 +74,7 @@ class User extends Authenticatable implements PasskeyUser
 
         return $this->is_active && $this->establishments()
             ->where('establishments.id', $establishmentId)
+            ->where('establishments.status', 'active')
             ->wherePivot('is_active', true)
             ->wherePivotIn('role', $roles)
             ->exists();

@@ -26,7 +26,7 @@ class DetentionStay extends Model
     protected $fillable = [
         'detainee_id', 'detention_case_id', 'establishment_id', 'detention_order_id',
         'previous_stay_id', 'unit_reference', 'admitted_at', 'released_at', 'release_reason',
-        'release_authority_reference', 'recorded_by',
+        'release_details', 'release_authority_reference', 'recorded_by',
     ];
 
     protected function casts(): array

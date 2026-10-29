@@ -22,6 +22,7 @@ type Stay = {
     admitted_at: string;
     released_at: string | null;
     release_reason: string | null;
+    release_details: string | null;
     cell_assignments: CellAssignment[];
 };
 type Order = {
@@ -667,6 +668,7 @@ export default function DetaineeShow({
                                 {stay.released_at
                                     ? ` au ${new Date(stay.released_at).toLocaleDateString('fr-FR')}${stay.release_reason?.startsWith('Transfert vers ') ? ` · ${stay.release_reason}` : ''}`
                                     : ' · en cours'}
+                                {stay.release_details ? ` · Motif : ${stay.release_details}` : ''}
                             </p>
                         ))}
                     </section>

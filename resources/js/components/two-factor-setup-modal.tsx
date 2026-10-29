@@ -104,7 +104,7 @@ function TwoFactorSetupStep({
                     <div className="relative flex w-full items-center justify-center">
                         <div className="absolute inset-0 top-1/2 h-px w-full bg-border" />
                         <span className="relative bg-card px-2 py-1">
-                            or, enter the code manually
+                            ou saisissez le code manuellement
                         </span>
                     </div>
 
@@ -123,7 +123,13 @@ function TwoFactorSetupStep({
                                         className="h-full w-full bg-background p-3 text-foreground outline-none"
                                     />
                                     <button
+                                        type="button"
                                         onClick={() => copy(manualSetupKey)}
+                                        aria-label={
+                                            copiedText === manualSetupKey
+                                                ? 'Clé copiée'
+                                                : 'Copier la clé de configuration'
+                                        }
                                         className="border-l border-border px-3 hover:bg-muted"
                                     >
                                         <IconComponent className="w-4" />
@@ -210,7 +216,7 @@ function TwoFactorVerificationStep({
                                 onClick={onBack}
                                 disabled={processing}
                             >
-                                Back
+                                Retour
                             </Button>
                             <Button
                                 type="submit"
@@ -219,7 +225,7 @@ function TwoFactorVerificationStep({
                                     processing || code.length < OTP_MAX_LENGTH
                                 }
                             >
-                                Confirm
+                                Confirmer
                             </Button>
                         </div>
                     </div>
@@ -262,27 +268,27 @@ export default function TwoFactorSetupModal({
     }>(() => {
         if (twoFactorEnabled) {
             return {
-                title: 'Two-factor authentication enabled',
+                title: 'Authentification à deux facteurs activée',
                 description:
-                    'Two-factor authentication is now enabled. Scan the QR code or enter the setup key in your authenticator app.',
-                buttonText: 'Close',
+                    'L’authentification à deux facteurs est activée. Scannez ce code QR ou saisissez la clé de configuration dans votre application d’authentification.',
+                buttonText: 'Fermer',
             };
         }
 
         if (showVerificationStep) {
             return {
-                title: 'Verify authentication code',
+                title: 'Vérifier le code',
                 description:
-                    'Enter the 6-digit code from your authenticator app',
-                buttonText: 'Continue',
+                    'Saisissez le code à 6 chiffres affiché dans votre application d’authentification.',
+                buttonText: 'Continuer',
             };
         }
 
         return {
-            title: 'Enable two-factor authentication',
+            title: 'Activer l’authentification à deux facteurs',
             description:
-                'To finish enabling two-factor authentication, scan the QR code or enter the setup key in your authenticator app',
-            buttonText: 'Continue',
+                'Pour terminer l’activation, scannez le code QR ou saisissez la clé de configuration dans votre application d’authentification.',
+            buttonText: 'Continuer',
         };
     }, [twoFactorEnabled, showVerificationStep]);
 

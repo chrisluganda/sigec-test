@@ -48,15 +48,15 @@ export default function ManageTwoFactor(props: Props) {
         <div className="space-y-6">
             <Heading
                 variant="small"
-                title="Two-factor authentication"
-                description="Manage your two-factor authentication settings"
+                title="Authentification à deux facteurs"
+                description="Gérez la vérification supplémentaire de votre compte."
             />
             {twoFactorEnabled ? (
                 <div className="flex flex-col items-start justify-start space-y-4">
                     <p className="text-sm text-muted-foreground">
-                        You will be prompted for a secure, random pin during
-                        login, which you can retrieve from the TOTP-supported
-                        application on your phone.
+                        À chaque connexion, saisissez le code temporaire fourni
+                        par l’application d’authentification installée sur votre
+                        téléphone.
                     </p>
 
                     <div className="relative inline">
@@ -67,7 +67,7 @@ export default function ManageTwoFactor(props: Props) {
                                     type="submit"
                                     disabled={processing}
                                 >
-                                    Disable 2FA
+                                    Désactiver l’authentification à deux facteurs
                                 </Button>
                             )}
                         </Form>
@@ -82,17 +82,17 @@ export default function ManageTwoFactor(props: Props) {
             ) : (
                 <div className="flex flex-col items-start justify-start space-y-4">
                     <p className="text-sm text-muted-foreground">
-                        When you enable two-factor authentication, you will be
-                        prompted for a secure pin during login. This pin can be
-                        retrieved from a TOTP-supported application on your
-                        phone.
+                        Activez cette option pour demander un code temporaire
+                        supplémentaire à chaque connexion. Ce code sera généré
+                        par une application d’authentification sur votre
+                        téléphone.
                     </p>
 
                     <div>
                         {hasSetupData ? (
                             <Button onClick={() => setShowSetupModal(true)}>
                                 <ShieldCheck />
-                                Continue setup
+                                Continuer la configuration
                             </Button>
                         ) : (
                             <Form
@@ -101,7 +101,7 @@ export default function ManageTwoFactor(props: Props) {
                             >
                                 {({ processing }) => (
                                     <Button type="submit" disabled={processing}>
-                                        Enable 2FA
+                                        Activer l’authentification à deux facteurs
                                     </Button>
                                 )}
                             </Form>

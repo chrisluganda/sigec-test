@@ -1,16 +1,11 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import {
     ArrowRight,
-    Building2,
-    ClipboardCheck,
-    LockKeyhole,
-    ShieldCheck,
-    UsersRound,
 } from 'lucide-react';
 import { login, register } from '@/routes';
 
 export default function Welcome() {
-    const { auth } = usePage().props;
+    const { auth, canRegister } = usePage().props;
     const signedIn = Boolean(auth.user);
 
     return (
@@ -23,17 +18,11 @@ export default function Welcome() {
                         className="flex items-center gap-3"
                         aria-label="SIGEC, accueil"
                     >
-                        <span className="flex size-11 items-center justify-center rounded-2xl bg-[#173d48] text-[#d9c18a] shadow-sm">
-                            <Building2 size={23} strokeWidth={1.8} />
-                        </span>
-                        <span className="leading-tight">
-                            <span className="block text-lg font-bold tracking-[0.16em]">
-                                SIGEC
-                            </span>
-                            <span className="text-[10px] font-medium tracking-[0.13em] text-slate-500 uppercase">
-                                Gestion carcérale
-                            </span>
-                        </span>
+                        <img
+                            src="/images/brand/sigec-logo.svg"
+                            alt="SIGEC — Gestion carcérale"
+                            className="h-12 w-auto object-contain"
+                        />
                     </Link>
                     <nav className="flex items-center gap-3">
                         {signedIn ? (
@@ -52,37 +41,35 @@ export default function Welcome() {
                                 >
                                     Connexion
                                 </Link>
-                                <Link
-                                    href={register()}
-                                    className="hidden rounded-full bg-[#173d48] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#245664] sm:inline-flex"
-                                >
-                                    Créer un compte
-                                </Link>
+                                {canRegister && (
+                                    <Link
+                                        href={register()}
+                                        className="hidden rounded-full bg-[#173d48] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#245664] sm:inline-flex"
+                                    >
+                                        Créer un compte
+                                    </Link>
+                                )}
                             </>
                         )}
                     </nav>
                 </header>
 
                 <main>
-                    <section className="mx-auto grid max-w-7xl items-center gap-12 px-5 pt-8 pb-16 sm:px-8 sm:pt-14 lg:grid-cols-[1.05fr_0.95fr] lg:px-12 lg:pt-16 lg:pb-24">
-                        <div className="relative z-10 max-w-2xl">
-                            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#d8dfd8] bg-white/70 px-4 py-2 text-xs font-semibold tracking-[0.13em] text-[#41616a] uppercase">
-                                <span className="size-2 rounded-full bg-[#b89a5b]" />{' '}
-                                Une gestion plus lisible, au quotidien
-                            </div>
+                    <section className="mx-auto max-w-7xl px-5 pt-12 pb-16 text-center sm:px-8 sm:pt-20 lg:px-12 lg:pt-24 lg:pb-24">
+                        <div className="relative z-10 mx-auto max-w-4xl">
                             <h1 className="text-4xl leading-[1.08] font-semibold tracking-[-0.04em] text-[#173d48] sm:text-5xl lg:text-6xl">
                                 La gestion carcérale,{' '}
                                 <span className="text-[#ad8a48]">
                                     claire et coordonnée.
                                 </span>
                             </h1>
-                            <p className="mt-6 max-w-xl text-base leading-7 text-slate-600 sm:text-lg">
+                            <p className="mx-auto mt-6 max-w-2xl text-base leading-7 text-slate-600 sm:text-lg">
                                 SIGEC est une plateforme dédiée à la gestion des
                                 établissements pénitentiaires et au suivi
                                 administratif des admissions, des dossiers et
                                 des libérations.
                             </p>
-                            <div className="mt-8 flex flex-wrap gap-3">
+                            <div className="mt-8 flex flex-wrap justify-center gap-3">
                                 {signedIn ? (
                                     <>
                                         <Link
@@ -129,95 +116,6 @@ export default function Welcome() {
                             </p>
                         </div>
 
-                        <div className="relative mx-auto w-full max-w-xl lg:ml-auto">
-                            <div className="absolute -top-10 -right-10 size-48 rounded-full bg-[#d9c18a]/30 blur-3xl" />
-                            <div className="absolute -bottom-12 -left-8 size-56 rounded-full bg-[#8da9a0]/25 blur-3xl" />
-                            <div className="relative overflow-hidden rounded-[2rem] bg-[#173d48] p-6 text-white shadow-2xl shadow-[#173d48]/20 sm:p-8">
-                                <div className="absolute -top-20 -right-16 size-64 rounded-full border border-white/10" />
-                                <div className="absolute -top-12 -right-8 size-48 rounded-full border border-white/10" />
-                                <div className="relative flex items-start justify-between gap-4">
-                                    <div>
-                                        <p className="text-xs font-semibold tracking-[0.18em] text-[#d9c18a] uppercase">
-                                            SIGEC
-                                        </p>
-                                        <h2 className="mt-2 text-2xl font-semibold">
-                                            Un suivi structuré
-                                        </h2>
-                                        <p className="mt-2 max-w-sm text-sm leading-6 text-white/65">
-                                            Les informations essentielles
-                                            réunies dans un espace réservé aux
-                                            utilisateurs autorisés.
-                                        </p>
-                                    </div>
-                                    <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-[#e2c989]">
-                                        <ShieldCheck size={25} />
-                                    </span>
-                                </div>
-                                <div className="relative mt-8 space-y-3">
-                                    <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                                        <span className="flex size-10 items-center justify-center rounded-xl bg-[#d9c18a]/15 text-[#e2c989]">
-                                            <Building2 size={19} />
-                                        </span>
-                                        <span className="min-w-0 flex-1">
-                                            <span className="block text-sm font-semibold">
-                                                Établissements
-                                            </span>
-                                            <span className="mt-1 block text-xs text-white/55">
-                                                Informations et organisation
-                                            </span>
-                                        </span>
-                                        <ArrowRight
-                                            className="text-white/40"
-                                            size={17}
-                                        />
-                                    </div>
-                                    <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                                        <span className="flex size-10 items-center justify-center rounded-xl bg-[#d9c18a]/15 text-[#e2c989]">
-                                            <ClipboardCheck size={19} />
-                                        </span>
-                                        <span className="min-w-0 flex-1">
-                                            <span className="block text-sm font-semibold">
-                                                Admissions et libérations
-                                            </span>
-                                            <span className="mt-1 block text-xs text-white/55">
-                                                Événements et décisions
-                                                consignés
-                                            </span>
-                                        </span>
-                                        <ArrowRight
-                                            className="text-white/40"
-                                            size={17}
-                                        />
-                                    </div>
-                                    <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.07] p-4">
-                                        <span className="flex size-10 items-center justify-center rounded-xl bg-[#d9c18a]/15 text-[#e2c989]">
-                                            <LockKeyhole size={19} />
-                                        </span>
-                                        <span className="min-w-0 flex-1">
-                                            <span className="block text-sm font-semibold">
-                                                Accès encadrés
-                                            </span>
-                                            <span className="mt-1 block text-xs text-white/55">
-                                                Droits associés aux rôles
-                                                attribués
-                                            </span>
-                                        </span>
-                                        <ArrowRight
-                                            className="text-white/40"
-                                            size={17}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="relative mt-6 flex items-center gap-3 border-t border-white/10 pt-5 text-xs text-white/55">
-                                    <UsersRound
-                                        size={16}
-                                        className="text-[#d9c18a]"
-                                    />{' '}
-                                    Conçu pour accompagner le travail des
-                                    équipes
-                                </div>
-                            </div>
-                        </div>
                     </section>
 
                     <section

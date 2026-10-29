@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 type Establishment = { id: number; code: string; name: string };
 type Detainee = {
     id: number;
-    record_number: string;
     family_name: string;
     post_name: string | null;
     given_names: string;
@@ -286,7 +285,6 @@ export default function VisitsIndex({
                                                 ) : null}
                                             </td>
                                             <td className="px-4 py-3">
-                                                {visit.detainee.record_number} —{' '}
                                                 {visit.detainee.family_name}{' '}
                                                 {visit.detainee.post_name ?? ''}{' '}
                                                 {visit.detainee.given_names}

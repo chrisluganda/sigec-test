@@ -2,6 +2,7 @@ import type { UrlMethodPair } from '@inertiajs/core';
 import { router } from '@inertiajs/react';
 import { usePasskeyVerify } from '@laravel/passkeys/react';
 import { KeyRound } from 'lucide-react';
+import { translatePasskeyError } from '@/lib/passkey-error-message';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -55,7 +56,7 @@ export default function PasskeyVerify({
                         : (label ?? 'Se connecter avec une clé d’accès')}
                 </Button>
                 {error && (
-                    <InputError message={error} className="text-center" />
+                    <InputError message={translatePasskeyError(error) ?? undefined} className="text-center" />
                 )}
             </div>
 

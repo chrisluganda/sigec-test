@@ -6,8 +6,10 @@ use App\Actions\Teams\CreateTeam;
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
 class CreateNewUser implements CreatesNewUsers
@@ -31,16 +33,25 @@ class CreateNewUser implements CreatesNewUsers
             'password' => $this->passwordRules(),
         ])->validate();
 
-        return DB::transaction(function () use ($input) {
-            $user = User::create([
-                'name' => $input['name'],
-                'email' => $input['email'],
-                'password' => $input['password'],
-            ]);
+        return Cache::lock('sigec:first-user-registration', 30)->block(10, function () use ($input): User {
+            return DB::transaction(function () use ($input): User {
+                if (User::query()->exists()) {
+                    throw ValidationException::withMessages([
+                        'email' => 'La création de compte est fermée. Contactez l’administration centrale.',
+                    ]);
+                }
 
-            $this->createTeam->handle($user, $user->name."'s Team", isPersonal: true);
+                $user = User::create([
+                    'name' => $input['name'],
+                    'email' => $input['email'],
+                    'password' => $input['password'],
+                ]);
+                $user->forceFill(['is_central_admin' => true, 'is_active' => true])->save();
 
-            return $user;
+                $this->createTeam->handle($user, $user->name."'s Team", isPersonal: true);
+
+                return $user;
+            });
         });
     }
 }

@@ -39,13 +39,25 @@ class DetaineeController extends Controller
         $establishmentIds = $this->accessibleEstablishmentIds($user);
         abort_unless($user->is_central_admin || $establishmentIds->isNotEmpty(), 403);
 
-        $query = Detainee::query()
-            ->whereHas('stays', function ($query) use ($user, $establishmentIds) {
+        $status = $request->query('status') === 'released' ? 'released' : 'active';
+        $query = Detainee::query();
+        if ($status === 'active') {
+            $query->whereHas('stays', function ($query) use ($user, $establishmentIds) {
                 $query->whereNull('released_at');
                 if (! $user->is_central_admin) {
                     $query->whereIn('establishment_id', $establishmentIds);
                 }
-            })
+            });
+        } else {
+            $query->whereDoesntHave('stays', fn ($query) => $query->whereNull('released_at'))
+                ->whereHas('stays', function ($query) use ($user, $establishmentIds) {
+                    $query->whereNotNull('released_at');
+                    if (! $user->is_central_admin) {
+                        $query->whereIn('establishment_id', $establishmentIds);
+                    }
+                });
+        }
+        $query
             ->when($request->filled('search'), function ($query) use ($request) {
                 $term = trim((string) $request->query('search'));
                 $query->where(fn ($matches) => $matches->where('record_number', 'like', "%{$term}%")
@@ -56,6 +68,7 @@ class DetaineeController extends Controller
             ->orderBy('family_name')->orderBy('post_name')->orderBy('given_names');
         $detainees = $query->with([
             'currentStay.establishment',
+            'latestStay.establishment',
             'currentStay.cellAssignments' => fn ($assignments) => $assignments->whereNull('ended_at')->with('cell.building'),
             'cases' => fn ($query) => $query->latest(),
         ])
@@ -64,6 +77,7 @@ class DetaineeController extends Controller
         return Inertia::render('detainees/index', [
             'detainees' => $detainees,
             'search' => (string) $request->query('search', ''),
+            'status' => $status,
             'canCreate' => true,
         ]);
     }
@@ -89,9 +103,23 @@ class DetaineeController extends Controller
             $establishment->setAttribute('has_active_cells', $buildings->isNotEmpty());
         });
 
+        $existingDetainee = null;
+        if ($request->filled('detainee_id')) {
+            $existingDetainee = Detainee::query()
+                ->whereKey($request->integer('detainee_id'))
+                ->whereDoesntHave('stays', fn ($stays) => $stays->whereNull('released_at'))
+                ->whereHas('stays', function ($stays) use ($user, $establishmentIds) {
+                    if (! $user->is_central_admin) {
+                        $stays->whereIn('establishment_id', $establishmentIds);
+                    }
+                })
+                ->firstOrFail(['id', 'record_number', 'family_name', 'post_name', 'given_names', 'date_of_birth', 'sex']);
+        }
+
         return Inertia::render('detainees/create', [
             'establishments' => $establishments,
             'magistrates' => Magistrate::query()->where('is_active', true)->orderBy('family_name')->orderBy('given_names')->get(['id', 'family_name', 'post_name', 'given_names', 'function', 'court_name', 'court_level']),
+            'existingDetainee' => $existingDetainee,
         ]);
     }
 
@@ -424,13 +452,14 @@ class DetaineeController extends Controller
         $user = $request->user();
         abort_unless($user->is_active, 403);
         $validated = $request->validate([
+            'detainee_id' => ['nullable', 'integer', 'exists:detainees,id'],
             'establishment_id' => ['required', 'integer', 'exists:establishments,id'],
             'cell_id' => ['required', 'integer', 'exists:cells,id'],
-            'family_name' => ['required', 'string', 'max:255'],
+            'family_name' => ['required_without:detainee_id', 'nullable', 'string', 'max:255'],
             'post_name' => ['nullable', 'string', 'max:255'],
-            'given_names' => ['required', 'string', 'max:255'],
+            'given_names' => ['required_without:detainee_id', 'nullable', 'string', 'max:255'],
             'date_of_birth' => ['nullable', 'date', 'before_or_equal:today'],
-            'sex' => ['required', Rule::in(['female', 'male', 'unknown'])],
+            'sex' => ['required_without:detainee_id', 'nullable', Rule::in(['female', 'male', 'unknown'])],
             'photo' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'fingerprint_template' => ['nullable', 'file', 'max:32'],
             'finger_position' => ['required_with:fingerprint_template', 'nullable', Rule::in(['left_thumb', 'left_index', 'right_thumb', 'right_index', 'other'])],
@@ -458,18 +487,24 @@ class DetaineeController extends Controller
         );
 
         DB::transaction(function () use ($validated, $user, $establishment, $request) {
-            $detainee = Detainee::query()->create([
-                'record_number' => 'DET-'.Str::ulid(),
-                'family_name' => $validated['family_name'],
-                'post_name' => $validated['post_name'] ?? null,
-                'given_names' => $validated['given_names'],
-                'date_of_birth' => $validated['date_of_birth'] ?? null,
-                'sex' => $validated['sex'],
-                'photo_path' => $request->hasFile('photo') ? $request->file('photo')->store('detainees/photos', 'local') : null,
-                'photo_captured_at' => $request->hasFile('photo') ? now() : null,
-                'photo_recorded_by' => $request->hasFile('photo') ? $user->id : null,
-                'created_by' => $user->id,
-            ]);
+            if (! empty($validated['detainee_id'])) {
+                $detainee = Detainee::query()->whereKey($validated['detainee_id'])->lockForUpdate()->firstOrFail();
+                abort_if($detainee->stays()->whereNull('released_at')->exists(), 422, 'Cette personne a déjà un séjour en cours.');
+                abort_unless($user->is_central_admin || $detainee->stays()->whereIn('establishment_id', $this->accessibleEstablishmentIds($user))->exists(), 403);
+            } else {
+                $detainee = Detainee::query()->create([
+                    'record_number' => 'DET-'.Str::ulid(),
+                    'family_name' => $validated['family_name'],
+                    'post_name' => $validated['post_name'] ?? null,
+                    'given_names' => $validated['given_names'],
+                    'date_of_birth' => $validated['date_of_birth'] ?? null,
+                    'sex' => $validated['sex'],
+                    'photo_path' => $request->hasFile('photo') ? $request->file('photo')->store('detainees/photos', 'local') : null,
+                    'photo_captured_at' => $request->hasFile('photo') ? now() : null,
+                    'photo_recorded_by' => $request->hasFile('photo') ? $user->id : null,
+                    'created_by' => $user->id,
+                ]);
+            }
 
             $case = $detainee->cases()->create([
                 'case_reference' => $validated['case_reference'] ?? null,
@@ -546,6 +581,7 @@ class DetaineeController extends Controller
         abort_unless($user->is_active, 403);
         $validated = $request->validate([
             'release_reason' => ['required', Rule::in(['release_order', 'sentence_completed', 'conditional_release', 'other'])],
+            'release_details' => ['nullable', 'required_if:release_reason,other', 'string', 'max:1000'],
             'release_authority_reference' => ['required', 'string', 'max:255'],
             'release_authority' => ['required', 'string', 'max:255'],
             'released_at' => ['required', 'date', 'before_or_equal:now'],
@@ -554,8 +590,10 @@ class DetaineeController extends Controller
         DB::transaction(function () use ($detainee, $user, $validated) {
             $stay = $detainee->stays()->whereNull('released_at')->with('detentionOrder')->lockForUpdate()->firstOrFail();
             abort_unless($user->is_central_admin || $user->hasEstablishmentRole($stay->establishment_id, ['director', 'judicial', 'custody']), 403);
-            if (Carbon::parse($validated['released_at'])->lt($stay->admitted_at)) {
-                abort(422, 'La date de libération ne peut pas précéder l’admission.');
+            if (! Carbon::parse($validated['released_at'])->gt($stay->admitted_at)) {
+                throw ValidationException::withMessages([
+                    'released_at' => 'La date de libération doit être postérieure à la date d’admission.',
+                ]);
             }
             $activeAssignments = $stay->cellAssignments()->whereNull('ended_at')->get(['id', 'cell_id']);
             $occupancyBeforeByCell = [];
@@ -573,6 +611,7 @@ class DetaineeController extends Controller
             $stay->update([
                 'released_at' => $validated['released_at'],
                 'release_reason' => $validated['release_reason'].' — '.$validated['release_authority'],
+                'release_details' => $validated['release_details'] ?? null,
                 'release_authority_reference' => $validated['release_authority_reference'],
             ]);
             $stay->detentionOrder?->update(['status' => 'released']);

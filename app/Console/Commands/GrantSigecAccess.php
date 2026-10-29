@@ -17,7 +17,7 @@ class GrantSigecAccess extends Command
         $user = User::query()->where('email', $this->argument('email'))->first();
 
         if (! $user) {
-            $this->error('No user account matches that email.');
+            $this->error('Aucun compte utilisateur ne correspond à cette adresse e-mail.');
 
             return self::FAILURE;
         }
@@ -34,7 +34,7 @@ class GrantSigecAccess extends Command
         $roles = ['director', 'agent', 'medical', 'judicial', 'custody'];
 
         if (! in_array($role, $roles, true)) {
-            $this->error('Role must be central_admin, director, agent, medical, judicial, or custody.');
+            $this->error('La fonction doit être central_admin, director, agent, medical, judicial ou custody.');
 
             return self::FAILURE;
         }
@@ -43,7 +43,7 @@ class GrantSigecAccess extends Command
         $establishment = $establishmentId ? Establishment::query()->find($establishmentId) : null;
 
         if (! $establishment) {
-            $this->error('Provide a valid --establishment ID for a local role.');
+            $this->error('Indiquez un identifiant --establishment valide pour une fonction locale.');
 
             return self::FAILURE;
         }

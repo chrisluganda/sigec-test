@@ -8,25 +8,23 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-/* @chisel-registration */
 import { register } from '@/routes';
-/* @end-chisel-registration */
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
-/* @chisel-passkeys */
 import PasskeyVerify from '@/components/passkey-verify';
-/* @end-chisel-passkeys */
 import type { TeamInvitationContext } from '@/types';
 
 type Props = {
     status?: string;
     canResetPassword: boolean;
+    canRegister: boolean;
     teamInvitation?: TeamInvitationContext | null;
 };
 
 export default function Login({
     status,
     canResetPassword,
+    canRegister,
     teamInvitation,
 }: Props) {
     return (
@@ -38,9 +36,7 @@ export default function Login({
                     action="Log in"
                 />
             )}
-            {/* @chisel-passkeys */}
             <PasskeyVerify />
-            {/* @end-chisel-passkeys */}
             <Form
                 {...store.form()}
                 resetOnSuccess={['password']}
@@ -128,8 +124,7 @@ export default function Login({
                                         : 'Se connecter'}
                                 </Button>
                             </div>
-                            {/* @chisel-registration */}
-                            <div className="text-center text-sm text-muted-foreground">
+                            {canRegister && <div className="text-center text-sm text-muted-foreground">
                                 Vous n’avez pas encore de compte ?{' '}
                                 <TextLink
                                     href={register({
@@ -142,8 +137,7 @@ export default function Login({
                                 >
                                     Créer un compte
                                 </TextLink>
-                            </div>
-                            {/* @end-chisel-registration */}
+                            </div>}
                         </>
                     );
                 }}

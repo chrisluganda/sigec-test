@@ -13,6 +13,7 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 WORKDIR /var/www/html
+ENV VITE_APP_NAME=SIGEC
 COPY . .
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader \
     && npm ci \
@@ -28,6 +29,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /var/www/html
+ENV APP_NAME=SIGEC
 COPY --from=build /var/www/html /var/www/html
 COPY start-render.sh /usr/local/bin/start-render
 RUN sed -i 's/\r$//' /usr/local/bin/start-render \

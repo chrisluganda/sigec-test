@@ -1,5 +1,6 @@
 import { usePasskeyRegister } from '@laravel/passkeys/react';
 import { useState } from 'react';
+import { translatePasskeyError } from '@/lib/passkey-error-message';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,7 +60,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
     if (!isSupported) {
         return (
             <div className="text-sm text-muted-foreground">
-                Passkeys are not supported in this browser.
+                Ce navigateur ne prend pas en charge les clés d’accès.
             </div>
         );
     }
@@ -67,7 +68,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
     if (!showForm) {
         return (
             <Button variant="outline" onClick={() => setShowForm(true)}>
-                Add passkey
+                Ajouter une clé d’accès
             </Button>
         );
     }
@@ -78,29 +79,29 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
             className="space-y-4 rounded-lg border border-border bg-muted/50 p-4"
         >
             <div className="grid gap-2">
-                <Label htmlFor="passkey-name">Passkey name</Label>
+                <Label htmlFor="passkey-name">Nom de la clé d’accès</Label>
                 <Input
                     id="passkey-name"
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g., MacBook Pro, iPhone"
+                    placeholder="Ex. : ordinateur du bureau, téléphone"
                     className="mt-1 block w-full border-foreground/20"
                     autoFocus
                 />
                 <p className="text-xs text-muted-foreground">
-                    A name helps you identify this passkey later.
+                    Ce nom vous aidera à reconnaître cette clé plus tard.
                 </p>
             </div>
 
-            {error && <InputError message={error} />}
+            {error && <InputError message={translatePasskeyError(error) ?? undefined} />}
 
             <div className="flex gap-2">
                 <Button type="submit" disabled={isLoading || !name.trim()}>
-                    {isLoading ? 'Registering...' : 'Register passkey'}
+                    {isLoading ? 'Enregistrement…' : 'Enregistrer la clé'}
                 </Button>
                 <Button type="button" variant="ghost" onClick={handleCancel}>
-                    Cancel
+                    Annuler
                 </Button>
             </div>
         </form>

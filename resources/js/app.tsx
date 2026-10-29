@@ -20,7 +20,7 @@ if (
     });
 }
 
-const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const appName = import.meta.env.VITE_APP_NAME || 'SIGEC';
 
 void createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),

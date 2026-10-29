@@ -22,6 +22,7 @@ type Magistrate = {
     court_level: string | null;
 };
 type FormData = {
+    detainee_id: number | '';
     establishment_id: number | '';
     family_name: string;
     post_name: string;
@@ -56,22 +57,40 @@ type TextFieldKey = Exclude<
     | 'photo'
     | 'fingerprint_template'
 >;
-type Props = { establishments: Establishment[]; magistrates: Magistrate[] };
+type ExistingDetainee = {
+    id: number;
+    record_number: string;
+    family_name: string;
+    post_name: string | null;
+    given_names: string;
+    date_of_birth: string | null;
+    sex: 'female' | 'male' | 'unknown';
+};
+type Props = {
+    establishments: Establishment[];
+    magistrates: Magistrate[];
+    existingDetainee: ExistingDetainee | null;
+};
 
-export default function DetaineeCreate({ establishments, magistrates }: Props) {
+export default function DetaineeCreate({
+    establishments,
+    magistrates,
+    existingDetainee,
+}: Props) {
     const [buildingId, setBuildingId] = useState('');
     const [cells, setCells] = useState<CellOption[]>([]);
     const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
     const [cameraError, setCameraError] = useState('');
     const videoRef = useRef<HTMLVideoElement>(null);
     const { data, setData, post, processing, errors } = useForm<FormData>({
+        detainee_id: existingDetainee?.id ?? '',
         establishment_id:
             establishments.length === 1 ? establishments[0].id : '',
-        family_name: '',
-        post_name: '',
-        given_names: '',
-        date_of_birth: '',
-        sex: 'unknown',
+        family_name: existingDetainee?.family_name ?? '',
+        post_name: existingDetainee?.post_name ?? '',
+        given_names: existingDetainee?.given_names ?? '',
+        date_of_birth: existingDetainee?.date_of_birth ?? '',
+        sex: existingDetainee?.sex ?? 'unknown',
         case_reference: '',
         case_type: 'pretrial',
         magistrate_id: '',
@@ -240,12 +259,25 @@ export default function DetaineeCreate({ establishments, magistrates }: Props) {
                 <Heading
                     variant="small"
                     title="Enregistrer une admission"
-                    description="Enregistre les informations d’identité et le titre légal après vérification de l’original."
+                    description={
+                        existingDetainee
+                            ? 'Réadmission : le dossier existant sera conservé et un nouveau séjour sera ajouté après vérification du nouveau titre légal.'
+                            : 'Enregistre les informations d’identité et le titre légal après vérification de l’original.'
+                    }
                 />
                 <form
                     onSubmit={submit}
                     className="space-y-5 rounded-lg border p-6"
                 >
+                    {existingDetainee ? (
+                        <div className="rounded-md border bg-muted/40 p-4 text-sm">
+                            <p className="font-medium">Réutilisation du dossier existant</p>
+                            <p className="mt-1 text-muted-foreground">
+                                Dossier {existingDetainee.record_number.split('-')[0]} — {existingDetainee.family_name}{' '}
+                                {existingDetainee.post_name ?? ''} {existingDetainee.given_names}. L’identité et l’historique seront conservés.
+                            </p>
+                        </div>
+                    ) : null}
                     <div className="space-y-2">
                         <label
                             htmlFor="establishment_id"
@@ -384,6 +416,7 @@ export default function DetaineeCreate({ establishments, magistrates }: Props) {
                                     id={key}
                                     type={type}
                                     value={String(data[key])}
+                                    readOnly={Boolean(existingDetainee)}
                                     onChange={(event) =>
                                         setData(key, event.target.value)
                                     }
@@ -404,6 +437,7 @@ export default function DetaineeCreate({ establishments, magistrates }: Props) {
                         <select
                             id="sex"
                             value={data.sex}
+                            disabled={Boolean(existingDetainee)}
                             onChange={(event) =>
                                 setData(
                                     'sex',
@@ -417,6 +451,7 @@ export default function DetaineeCreate({ establishments, magistrates }: Props) {
                             <option value="unknown">À confirmer</option>
                         </select>
                     </div>
+                    {!existingDetainee ? (
                     <section className="space-y-3 rounded-md border p-4">
                         <div>
                             <h2 className="font-medium">Photo et empreinte</h2>
@@ -632,6 +667,7 @@ export default function DetaineeCreate({ establishments, magistrates }: Props) {
                             </div>
                         ) : null}
                     </section>
+                    ) : null}
                     <div className="space-y-2">
                         <label
                             htmlFor="case_type"
@@ -710,6 +746,8 @@ export default function DetaineeCreate({ establishments, magistrates }: Props) {
                     {textFields
                         .slice(3)
                         .map(({ key, label, type = 'text', required }) => {
+                            if (existingDetainee && key === 'date_of_birth')
+                                return null;
                             if (
                                 key === 'judgment_final_at' &&
                                 data.case_type !== 'convicted'

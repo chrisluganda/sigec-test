@@ -120,10 +120,10 @@ class DashboardController extends Controller
         $occupied = CellAssignment::query()->whereNull('ended_at')
             ->whereHas('cell', fn ($query) => $query->where('status', 'active')->whereHas('building', fn ($building) => $building->where('status', 'active')->whereIn('establishment_id', $establishmentIds)))
             ->count();
-        $canManageStocks = $user->is_central_admin || $user->establishments()->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'agent'])->exists();
-        $canManageClinic = $user->is_central_admin || $user->establishments()->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'medical'])->exists();
-        $canManageVisits = $user->is_central_admin || $user->establishments()->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'agent', 'custody'])->exists();
-        $canManageIncidents = $user->is_central_admin || $user->establishments()->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'agent'])->exists();
+        $canManageStocks = $user->is_active && ($user->is_central_admin || $user->establishments()->where('establishments.status', 'active')->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'agent'])->exists());
+        $canManageClinic = $user->is_active && ($user->is_central_admin || $user->establishments()->where('establishments.status', 'active')->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'medical'])->exists());
+        $canManageVisits = $user->is_active && ($user->is_central_admin || $user->establishments()->where('establishments.status', 'active')->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'agent', 'custody'])->exists());
+        $canManageIncidents = $user->is_active && ($user->is_central_admin || $user->establishments()->where('establishments.status', 'active')->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'agent'])->exists());
         $openIncidents = $canManageIncidents
             ? Incident::query()->whereIn('establishment_id', $establishmentIds)->where('status', '!=', 'resolved')->count()
             : 0;

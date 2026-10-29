@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -40,14 +41,15 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'name' => config('app.name'),
+            'canRegister' => fn () => ! User::query()->exists(),
             'auth' => [
                 'user' => $user,
             ],
-            'canManageStocks' => fn () => $user && ($user->is_central_admin || $user->establishments()->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'agent'])->exists()),
-            'canManageClinic' => fn () => $user && ($user->is_central_admin || $user->establishments()->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'medical'])->exists()),
-            'canManageVisits' => fn () => $user && ($user->is_central_admin || $user->establishments()->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'agent', 'custody'])->exists()),
-            'canManageIncidents' => fn () => $user && ($user->is_central_admin || $user->establishments()->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'agent'])->exists()),
-            'canReviewAdmissions' => fn () => $user && ($user->is_central_admin || $user->establishments()->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'judicial'])->exists()),
+            'canManageStocks' => fn () => $user && $user->is_active && ($user->is_central_admin || $user->establishments()->where('establishments.status', 'active')->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'agent'])->exists()),
+            'canManageClinic' => fn () => $user && $user->is_active && ($user->is_central_admin || $user->establishments()->where('establishments.status', 'active')->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'medical'])->exists()),
+            'canManageVisits' => fn () => $user && $user->is_active && ($user->is_central_admin || $user->establishments()->where('establishments.status', 'active')->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'agent', 'custody'])->exists()),
+            'canManageIncidents' => fn () => $user && $user->is_active && ($user->is_central_admin || $user->establishments()->where('establishments.status', 'active')->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'agent'])->exists()),
+            'canReviewAdmissions' => fn () => $user && $user->is_active && ($user->is_central_admin || $user->establishments()->where('establishments.status', 'active')->wherePivot('is_active', true)->wherePivotIn('role', ['director', 'judicial'])->exists()),
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'currentTeam' => fn () => $user?->currentTeam ? $user->toUserTeam($user->currentTeam) : null,
             'teams' => fn () => $user?->toUserTeams(includeCurrent: true) ?? [],

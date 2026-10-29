@@ -11,7 +11,7 @@
     "theme_color": "#1f3b32",
     "icons": [
         {
-            "src": "/favicon.svg",
+            "src": "/images/brand/sigec-icone.svg",
             "sizes": "any",
             "type": "image/svg+xml",
             "purpose": "any"

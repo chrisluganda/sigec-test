@@ -44,7 +44,7 @@ class VisitsController extends Controller
         $searchTerms = array_slice(preg_split('/\s+/u', $search, -1, PREG_SPLIT_NO_EMPTY) ?: [], 0, 6);
 
         $visits = PrisonVisit::query()
-            ->with(['detainee:id,record_number,family_name,post_name,given_names', 'visitor:id,family_name,post_name,given_names,phone', 'recorder:id,name'])
+            ->with(['detainee:id,family_name,post_name,given_names', 'visitor:id,family_name,post_name,given_names,phone', 'recorder:id,name'])
             ->where('establishment_id', $selectedId)
             ->whereDate('scheduled_at', $selectedDate)
             ->when($status !== 'all', fn ($query) => $query->where('status', $status))
@@ -127,7 +127,7 @@ class VisitsController extends Controller
             'selectedEstablishmentId' => $selectedId,
             'hasDetainees' => $hasDetainees,
             'selectedVisitor' => $visitor ? ['id' => $visitor->id, 'family_name' => $visitor->family_name, 'post_name' => $visitor->post_name, 'given_names' => $visitor->given_names, 'date_of_birth' => ($visitor->date_of_birth ? Carbon::parse($visitor->date_of_birth)->toDateString() : null), 'place_of_birth' => $visitor->place_of_birth, 'document_type' => $visitor->document_type, 'document_reference' => $visitor->document_reference, 'phone' => $visitor->phone] : null,
-            'selectedDetainee' => $detainee ? ['id' => $detainee->id, 'label' => $detainee->record_number.' — '.$detainee->family_name.' '.($detainee->post_name ? $detainee->post_name.' ' : '').$detainee->given_names] : null,
+            'selectedDetainee' => $detainee ? ['id' => $detainee->id, 'label' => $detainee->family_name.' '.($detainee->post_name ? $detainee->post_name.' ' : '').$detainee->given_names] : null,
             'success' => $request->session()->get('success'),
         ]);
     }
@@ -146,7 +146,7 @@ class VisitsController extends Controller
             ->orderBy('family_name')->orderBy('post_name')->orderBy('given_names')->limit(20)
             ->get(['id', 'record_number', 'family_name', 'post_name', 'given_names']);
 
-        return response()->json($detainees->map(fn (Detainee $detainee) => ['id' => $detainee->id, 'label' => $detainee->record_number.' — '.$detainee->family_name.' '.($detainee->post_name ? $detainee->post_name.' ' : '').$detainee->given_names]));
+        return response()->json($detainees->map(fn (Detainee $detainee) => ['id' => $detainee->id, 'label' => $detainee->family_name.' '.($detainee->post_name ? $detainee->post_name.' ' : '').$detainee->given_names]));
     }
 
     public function searchVisitors(Request $request, Establishment $establishment): JsonResponse

@@ -53,6 +53,12 @@ class Detainee extends Model
         return $this->hasOne(DetentionStay::class)->whereNull('released_at')->latestOfMany('admitted_at');
     }
 
+    /** @return HasOne<DetentionStay, $this> */
+    public function latestStay(): HasOne
+    {
+        return $this->hasOne(DetentionStay::class)->latestOfMany('admitted_at');
+    }
+
     /** @return HasMany<CellAssignment, $this> */
     public function cellAssignments(): HasMany
     {

@@ -1,0 +1,12 @@
+{
+    "Password updated.": "Mot de passe mis à jour.",
+  "This team name is reserved and cannot be used.": "Ce nom d’équipe est réservé et ne peut pas être utilisé.",
+  "This user is already a member of the team.": "Cette personne est déjà membre de l’équipe.",
+  "An invitation has already been sent to this email address.": "Une invitation a déjà été envoyée à cette adresse e-mail.",
+  "This invitation was sent to a different email address.": "Cette invitation a été envoyée à une autre adresse e-mail.",
+  "This invitation has already been accepted.": "Cette invitation a déjà été acceptée.",
+  "This invitation has expired.": "Cette invitation a expiré.",
+  "The team name does not match.": "Le nom de l’équipe ne correspond pas.",
+  "The team owner cannot be removed.": "Le propriétaire de l’équipe ne peut pas être retiré.",
+  "This action is unauthorized.": "Vous n’êtes pas autorisé à effectuer cette action."
+}
