@@ -162,6 +162,7 @@ POLITIQUE DE MISE À JOUR DE CE README
 
 HISTORIQUE
 ----------
+2026-10-30 — Retrait de la connexion par clé d’accès de la page de connexion; l’authentification se fait par adresse e-mail et mot de passe. La gestion et la confirmation par clé d’accès dans les autres parcours restent disponibles.
 2026-10-29 — La liste des personnes détenues distingue les séjours actifs des dossiers libérés. La libération clôt l’affectation à la cellule; le dossier et son historique restent accessibles dans l’onglet Libérés. Le parcours de réadmission réutilise le dossier existant et ajoute un nouveau séjour avec un nouveau titre légal. Le formulaire de libération affiche ses champs clairement, précise les erreurs sous chaque champ, permet de détailler un motif « Autre » et impose une date strictement postérieure à l’admission et inférieure ou égale à maintenant. La date locale est convertie en UTC avant envoi pour éviter les rejets causés par le fuseau horaire du navigateur.
 2026-10-29 — Dans les visites, les sélecteurs et journaux affichent le nom, le post-nom et le prénom du détenu sans afficher son numéro de dossier; la recherche accepte toujours ce numéro.
 2026-10-27 — Le changement d’établissement d’un utilisateur désactive ses anciens accès actifs. Ajout de la modification des noms de bâtiments et cellules. Après inscription, redirection vers le tableau de bord SIGEC plutôt que vers le tableau de bord générique de démonstration; libellés d’établissement précisés en français. Ces changements restent à publier sur Render.
